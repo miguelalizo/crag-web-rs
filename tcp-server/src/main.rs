@@ -39,4 +39,5 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
         .unwrap();
 
     Ok(())
+
 }
