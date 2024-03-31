@@ -1,5 +1,5 @@
 # Ignore target directory
-/target/
+target/
 
 # Ignore IDE/editor-specific files
 .vscode/
@@ -27,3 +27,4 @@ Cargo.toml.save
 *.rmeta
 *.crate
 *.crate.lock
+*rustc_info.json
