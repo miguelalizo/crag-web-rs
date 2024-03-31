@@ -14,6 +14,7 @@ fn main() -> std::io::Result<()> {
 
 fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     println!("Connection established!");
+    
     let buf = std::io::BufReader::new(&mut stream);
 
     let request_line = buf
@@ -35,9 +36,9 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     );
 
     stream
-        .write_all(response.as_bytes())
-        .unwrap();
+        .write_all(response.as_bytes())?;
 
+    
     Ok(())
 
 }
