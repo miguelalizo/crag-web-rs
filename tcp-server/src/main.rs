@@ -1,11 +1,11 @@
 use std::{io::{BufRead, Write}, net::{TcpListener, TcpStream}};
-use tcp_server::ThreadPool;
+mod threadpool;
 
 fn main() -> std::io::Result<()> {
     // TcpListener bound to a port
     let listener = TcpListener::bind("127.0.0.1:8010")?;
     // ThreadPool instantiated with finite capacity 
-    let pool = ThreadPool::build(4)
+    let pool = threadpool::ThreadPool::build(4)
         .expect("ThreadPool size must be greater than 0");
     
 

@@ -2,7 +2,6 @@ use std::error;
 use std::fmt;
 use std::thread;
 use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
@@ -24,6 +23,7 @@ pub struct ThreadPool {
     sender: mpsc::Sender<Job>
 }
 
+/// Type alias for the closure arument to ThreadPool.execute()
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
 struct Worker {
@@ -39,20 +39,26 @@ impl ThreadPool {
         if size < 1 {
             return Err(PoolCreationError::ZeroSize);
         }
-
+        
+        // use mpsc channel to send requests to workers
         let (sender, receiver) = mpsc::channel();
 
+        // workers will need a Mutex to share the receiver 
+        // across threads so we wrap in thread safe
+        // smart pointer Arc
         let receiver = Arc::new(Mutex::new(receiver));
-
 
         let mut workers = Vec::with_capacity(size);
 
         for id in 0..size {
+            // give each worker a clone of the Arc that holds the receiver
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
         Ok(ThreadPool { workers, sender })
     }
+    /// Execute a request in the stream by being passed in the
+    /// handle_connection function as a closure
     pub fn execute<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static
@@ -63,6 +69,9 @@ impl ThreadPool {
 }
 
 impl Worker {
+    /// Create a new Worker with a receiver clone 
+    /// and spawns a thread that loops over jobs sent over the
+    /// receiver and executes the job
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
         // if OS cannot create a new thread, thread::spawn will panic
         // TODO: Change to thread::Builder which returns Result
