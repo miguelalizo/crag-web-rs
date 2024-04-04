@@ -21,13 +21,15 @@ impl fmt::Display for ServerError {
 impl error::Error for ServerError { }   
 
 
+
+#[derive(Debug)]
 pub struct Server {
     tcp_listener: TcpListener,
     pool: threadpool::ThreadPool,
 }
 
 impl Server {
-    pub fn new(socket_addr: SocketAddr, pool_size: usize) -> Result<Server, ServerError> {
+    pub fn build(socket_addr: SocketAddr, pool_size: usize) -> Result<Server, ServerError> {
        let tcp_listener = TcpListener::bind(socket_addr)
             .map_err(ServerError::ServerCreation)?;
 
@@ -42,6 +44,7 @@ impl Server {
         Ok(server)
 
     }
+
     pub fn run(&self) { 
         for stream in self.tcp_listener.incoming() {
             let stream = stream.unwrap(); // handle unwrap case later

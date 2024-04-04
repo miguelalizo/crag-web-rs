@@ -17,24 +17,16 @@ impl fmt::Display for PoolCreationError {
 
 impl error::Error for PoolCreationError { }   
 
-
+#[derive(Debug)]
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: mpsc::Sender<Job>
 }
 
-/// Type alias for the closure arument to ThreadPool.execute()
-type Job = Box<dyn FnOnce() + Send + 'static>;
-
-struct Worker {
-    id: usize,
-    thread: thread::JoinHandle<()>
-}
-
 impl ThreadPool {
     /// Create a new ThreadPool
     /// 
-    /// The size is the number of threadsa in the pool.
+    /// The size is the number of threads in the pool.
     pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError> {
         if size < 1 {
             return Err(PoolCreationError::ZeroSize);
@@ -68,6 +60,13 @@ impl ThreadPool {
     }
 }
 
+#[derive(Debug)]
+struct Worker {
+    id: usize,
+    thread: thread::JoinHandle<()>
+}
+
+
 impl Worker {
     /// Create a new Worker with a receiver clone 
     /// and spawns a thread that loops over jobs sent over the
@@ -76,6 +75,8 @@ impl Worker {
         // if OS cannot create a new thread, thread::spawn will panic
         // TODO: Change to thread::Builder which returns Result
         let thread = thread::spawn(move || loop {
+            // blocks all other threads trying to aquire lock
+            // until it goes out of scope
             let job = receiver.lock().unwrap().recv().unwrap();
 
             println!("Worker {id} received job. Executing.");
@@ -88,3 +89,6 @@ impl Worker {
         Worker { id, thread }
     }
 }
+
+/// Type alias for the closure arument to ThreadPool.execute()
+type Job = Box<dyn FnOnce() + Send + 'static>;

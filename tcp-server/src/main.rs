@@ -15,7 +15,7 @@ fn main() -> std::io::Result<()> {
 
     // Create server
     let pool_size = 4;
-    let srvr = server::Server::new(socket_addr, pool_size)
+    let srvr = server::Server::build(socket_addr, pool_size)
         .expect("Unable to create Server");
    
     // run Server 
