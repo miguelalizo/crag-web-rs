@@ -60,19 +60,20 @@ impl Server {
 }
 
 
-fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> { 
-    // create buffer to store stream lines   
+fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> { propagate result to closure?
+    // create buffer to store stream   
     let mut buf = std::io::BufReader::new(&mut stream);
 
+    // buffer to store request line (first line from buffer)
     let mut request_line = String::new();
-
     buf.read_line(&mut request_line).unwrap();
 
     // parse request
     let req = request::Request::build(request_line);
     
+    // TODO Handle building Response from route handle functions
+
     // serve a response based on the request line
-    // TODO: handle this with route handler later
     let (status_line, filename) = match req {
         request::Request::GET(uri) => match uri.as_str() {
             "/" => {
@@ -84,8 +85,7 @@ fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> {
     };
 
 
-    // read html file contents into a String
-    // and get len
+    // read html file contents into a String and get len
     let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let len = html_contents.len();
 

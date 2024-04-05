@@ -12,9 +12,9 @@ impl Request {
             .trim()
             .split_whitespace();
 
-        let method = parts.next().unwrap();
-        let uri = parts.next().unwrap();
-        let protocol = parts.next().unwrap();
+        let method = parts.next().unwrap_or("GET");
+        let uri = parts.next().unwrap_or("not_implemented");
+        let protocol = parts.next().unwrap_or("HTTP/1.1");
 
         if protocol != "HTTP/1.1" {
             panic!("Server can only work with HTTP/1.1");
