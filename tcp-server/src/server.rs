@@ -62,15 +62,14 @@ impl Server {
 
 fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> { 
     // create buffer to store stream lines   
-    let buf = std::io::BufReader::new(&mut stream);
-    let request_vec: Vec<String> = buf
-        .lines()
-        .map(|line| line.unwrap())
-        .collect();
+    let mut buf = std::io::BufReader::new(&mut stream);
+
+    let mut request_line = String::new();
+
+    buf.read_line(&mut request_line).unwrap();
 
     // parse request
-    let req = request::Request::build(request_vec);
-    println!("{:?}", req);
+    let req = request::Request::build(request_line);
     
     // serve a response based on the request line
     // TODO: handle this with route handler later
@@ -84,6 +83,7 @@ fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> {
         _ => ("HTTP/1.1 404 NOT FOUND", "../static/html/404.html")
     };
 
+
     // read html file contents into a String
     // and get len
     let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -93,7 +93,6 @@ fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> {
     let response = format!(
         "{status_line}\r\nContent-Length: {len}\r\n\r\n{html_contents}"
     );
-    println!("{}", response);
     
     // write response into TcpStream
     stream

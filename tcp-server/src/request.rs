@@ -10,18 +10,15 @@ pub enum Request {
 
 impl Request {
     // should this be from instead?
-    pub fn build(request_vec: Vec<String>) -> Request {
-        let header_vec: Vec<&str> = request_vec
-            .get(0)
-            .unwrap()
-            .split(" ")
-            .collect();
-        
-        let method = *header_vec.get(0).unwrap();
-        let uri = *header_vec.get(1).unwrap();
-        let protocol = *header_vec.get(2).unwrap();
+    pub fn build(request_line: String) -> Request {
+        let mut parts = request_line
+            .trim()
+            .split_whitespace();
 
-        println!("{}, {}, {}", method, uri, protocol);
+        let method = parts.next().unwrap();
+        let uri = parts.next().unwrap();
+        let protocol = parts.next().unwrap();
+
         if protocol != "HTTP/1.1" {
             panic!("Server can only work with HTTP/1.1");
         }
