@@ -2,6 +2,7 @@ use std::net::ToSocketAddrs;
 
 mod threadpool;
 mod server;
+mod request;
 
 fn main() -> std::io::Result<()> {
     // validate addr

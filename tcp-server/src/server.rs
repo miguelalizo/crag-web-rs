@@ -4,6 +4,7 @@ use std::error;
 use std::fmt;
 
 use crate::threadpool::{self, PoolCreationError};
+use crate::request;
 
 
 #[derive(Debug)]
@@ -62,20 +63,25 @@ impl Server {
 fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> { 
     // create buffer to store stream lines   
     let buf = std::io::BufReader::new(&mut stream);
+    let request_vec: Vec<String> = buf
+        .lines()
+        .map(|line| line.unwrap())
+        .collect();
 
     // parse request
-    // TODO: create Request struct
-    let request_line = buf
-        .lines()
-        .next()
-        .unwrap().unwrap();//?;
-       
+    let req = request::Request::build(request_vec);
+    println!("{:?}", req);
+    
     // serve a response based on the request line
     // TODO: handle this with route handler later
-    let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
-        ("HTTP/1.1 200 OK", "../static/html/hello.html")
-    } else {
-        ("HTTP/1.1 404 NOT FOUND", "../static/html/404.html")
+    let (status_line, filename) = match req {
+        request::Request::GET(uri) => match uri.as_str() {
+            "/" => {
+                ("HTTP/1.1 200 OK", "../static/html/hello.html")
+            },
+            _ => ("HTTP/1.1 404 NOT FOUND", "../static/html/404.html")
+        }
+        _ => ("HTTP/1.1 404 NOT FOUND", "../static/html/404.html")
     };
 
     // read html file contents into a String
@@ -87,7 +93,8 @@ fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> {
     let response = format!(
         "{status_line}\r\nContent-Length: {len}\r\n\r\n{html_contents}"
     );
-
+    println!("{}", response);
+    
     // write response into TcpStream
     stream
         .write_all(response.as_bytes()).unwrap();//?;
