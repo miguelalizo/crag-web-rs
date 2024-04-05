@@ -1,6 +1,3 @@
-use std::io::BufReader;
-use std::net:: TcpStream;
-use std::io::BufRead;
 
 #[derive(Debug)]
 pub enum Request {
@@ -23,10 +20,9 @@ impl Request {
             panic!("Server can only work with HTTP/1.1");
         }
 
-        if method == "GET" {
-            return Request::GET(String::from(uri))
-        } else {
-            return Request::UNIDENTIFIED
+        match method {
+            "GET" => return Request::GET(String::from(uri)),
+            _ => return Request::UNIDENTIFIED
         }
     }
 }
