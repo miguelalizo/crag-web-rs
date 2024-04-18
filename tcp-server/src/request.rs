@@ -1,13 +1,16 @@
+use crate::server;
 
-#[derive(Debug)]
+
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum Request {
     GET(String),
+    POST(String, String),
     UNIDENTIFIED
 }
 
 impl Request {
-    // should this be from instead?
-    pub fn build(request_line: String) -> Request {
+    // should this be from implementation instead?
+    pub fn build(request_line: String, server: &server::Server) -> Request {
         let mut parts = request_line
             .trim()
             .split_whitespace();
@@ -21,8 +24,9 @@ impl Request {
         }
 
         match method {
-            "GET" => return Request::GET(String::from(uri)),
-            _ => return Request::UNIDENTIFIED
+            "GET" => Request::GET(String::from(uri)),
+            "POST" => Request::POST(String::from(uri), String::default()),
+            _ => Request::UNIDENTIFIED
         }
     }
 }

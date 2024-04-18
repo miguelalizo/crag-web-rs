@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::net::{TcpListener, SocketAddr, TcpStream};
 use std::io::{BufRead, Write};
 use std::error;
@@ -5,6 +6,8 @@ use std::fmt;
 
 use crate::threadpool::{self, PoolCreationError};
 use crate::request;
+use crate::handlers;
+use crate::response;
 
 
 #[derive(Debug)]
@@ -27,41 +30,58 @@ impl error::Error for ServerError { }
 pub struct Server {
     tcp_listener: TcpListener,
     pool: threadpool::ThreadPool,
+    handlers: HashMap<request::Request, Box<dyn handlers::RequestHandler + Sync>>,
 }
 
 impl Server {
-    pub fn build(socket_addr: SocketAddr, pool_size: usize) -> Result<Server, ServerError> {
+    pub fn build(
+        socket_addr: SocketAddr,
+        pool_size: usize,
+        handlers: HashMap<request::Request, Box<dyn handlers::RequestHandler + Sync>>
+    ) -> Result<Server, ServerError> {
        let tcp_listener = TcpListener::bind(socket_addr)
             .map_err(ServerError::ServerCreation)?;
 
         let pool = threadpool::ThreadPool::build(pool_size)
             .map_err(ServerError::PoolSizeError)?;
-    
+
         let server = Server { 
             tcp_listener,
-            pool
+            pool,
+            handlers,
         };
 
         Ok(server)
 
     }
 
+    pub fn add_handler<T>(
+        mut self,
+        r: request::Request,
+        handler: T,
+    ) -> Self
+    where T: handlers::RequestHandler + Sync + 'static
+    {
+        self.handlers.insert(r, Box::new(handler));
+        self
+    }
+
     pub fn run(&self) { 
         for stream in self.tcp_listener.incoming() {
             let stream = stream.unwrap(); // handle unwrap case later
 
+            let cloned_handlers = self.handlers.clone();
+
             self.pool.execute( || {
-                handle_connection(stream); //?
+                handle_connection(cloned_handlers, stream); //?
             });
         }
 
     }
-
 }
 
-
-fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> { propagate result to closure?
-    // create buffer to store stream   
+fn handle_connection(server: &Server, mut stream: TcpStream){ //} -> std::io::Result<()> { propagate result to closure?
+    // create buffer to store stream
     let mut buf = std::io::BufReader::new(&mut stream);
 
     // buffer to store request line (first line from buffer)
@@ -69,36 +89,20 @@ fn handle_connection(mut stream: TcpStream){ //} -> std::io::Result<()> { propag
     buf.read_line(&mut request_line).unwrap();
 
     // parse request
-    let req = request::Request::build(request_line);
-    
-    // TODO Handle building Response from route handle functions
+    let req = request::Request::build(request_line, server);
 
-    // serve a response based on the request line
-    let (status_line, filename) = match req {
-        request::Request::GET(uri) => match uri.as_str() {
-            "/" => {
-                ("HTTP/1.1 200 OK", "../static/html/hello.html")
-            },
-            _ => ("HTTP/1.1 404 NOT FOUND", "../static/html/404.html")
+    // TODO Handle building Response from route handle functions
+    let response = match server.handlers.get(&req) {
+        Some(handler) => {
+            handler.respond(buf)
+        },
+        None => {
+            response::Response { content: String::from("404 NOT FOUUND") }
         }
-        _ => ("HTTP/1.1 404 NOT FOUND", "../static/html/404.html")
     };
 
-
-    // read html file contents into a String and get len
-    let html_contents = std::fs::read_to_string(filename).unwrap();//?;
-    let len = html_contents.len();
-
-    // format http response
-    let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html_contents}"
-    );
-    
     // write response into TcpStream
-    stream
-        .write_all(response.as_bytes()).unwrap();//?;
-
-    
-    // Ok(())
+    stream.write_all(response.content.as_bytes()).unwrap();//?;
 
 }
+
