@@ -6,7 +6,7 @@ use std::fmt;
 
 use crate::threadpool::{self, PoolCreationError};
 use crate::request;
-use crate::handlers;
+use crate::handler;
 use crate::response;
 
 
@@ -30,14 +30,14 @@ impl error::Error for ServerError { }
 pub struct Server {
     tcp_listener: TcpListener,
     pool: threadpool::ThreadPool,
-    handlers: HashMap<request::Request, Box<dyn handlers::RequestHandler + Sync>>,
+    handlers: HashMap<request::Request, handler::Handler>
 }
 
 impl Server {
     pub fn build(
         socket_addr: SocketAddr,
         pool_size: usize,
-        handlers: HashMap<request::Request, Box<dyn handlers::RequestHandler + Sync>>
+        handlers: HashMap<request::Request, handler::Handler>
     ) -> Result<Server, ServerError> {
        let tcp_listener = TcpListener::bind(socket_addr)
             .map_err(ServerError::ServerCreation)?;
@@ -55,14 +55,12 @@ impl Server {
 
     }
 
-    pub fn add_handler<T>(
+    pub fn add_handler(
         mut self,
         r: request::Request,
-        handler: T,
-    ) -> Self
-    where T: handlers::RequestHandler + Sync + 'static
-    {
-        self.handlers.insert(r, Box::new(handler));
+        handler: handler::Handler,
+    ) -> Self {
+        self.handlers.insert(r, handler);
         self
     }
 
@@ -80,7 +78,11 @@ impl Server {
     }
 }
 
-fn handle_connection(server: &Server, mut stream: TcpStream){ //} -> std::io::Result<()> { propagate result to closure?
+fn handle_connection(
+    handlers: HashMap<request::Request,
+    handler::Handler>,
+    mut stream: TcpStream
+){
     // create buffer to store stream
     let mut buf = std::io::BufReader::new(&mut stream);
 
@@ -89,12 +91,12 @@ fn handle_connection(server: &Server, mut stream: TcpStream){ //} -> std::io::Re
     buf.read_line(&mut request_line).unwrap();
 
     // parse request
-    let req = request::Request::build(request_line, server);
+    let req = request::Request::build(request_line);
 
-    // TODO Handle building Response from route handle functions
-    let response = match server.handlers.get(&req) {
+    // Handle building Response from route handle functions
+    let response = match handlers.get(&req) {
         Some(handler) => {
-            handler.respond(buf)
+            handler()
         },
         None => {
             response::Response { content: String::from("404 NOT FOUUND") }

@@ -1,80 +1,145 @@
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::ToSocketAddrs;
 
 mod threadpool;
 mod server;
 mod request;
-mod handlers;
+mod handler;
 mod response;
 
-#[derive(Debug, Clone)]
-struct NotFoundHandler {}
 
-impl handlers::RequestHandler for NotFoundHandler {
-    fn respond(&self, buf: std::io::BufReader<&mut TcpStream>) -> response::Response {
-        response::Response { content: String::from("content") }
-    }
+fn not_found() -> response::Response {
+    let filename = "../static/html/404.html";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 404 NOT FOUND";
+    let len = html.len();
+
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
+
+    response::Response { content: response }
 }
 
-#[derive(Debug, Clone)]
-struct GetIndexHandler{}
+fn index() -> response::Response {
+    let filename = "../static/html/index.html";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
 
-impl handlers::RequestHandler for GetIndexHandler {
-    // fulfil request -> Response
-    fn respond(&self, buf: std::io::BufReader<&mut TcpStream>) -> response::Response {
-        // add HTTP header
-        // add the right html file
-        // make into json?
-        // return Response
-        response::Response { content: String::from("content") }
-    }
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
+
+    response::Response { content: response }}
+
+fn css_default() -> response::Response {
+    let filename = "../static/css/default.css";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
+
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
+
+    response::Response { content: response }
 }
 
+fn css_blue() -> response::Response {
+    let filename = "../static/css/blue.css";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
 
-#[derive(Debug, Clone)]
-struct GetContactHandler{}
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
 
-impl handlers::RequestHandler for GetContactHandler {
-    // fulfil request -> Response
-    fn respond(&self, buf: std::io::BufReader<&mut TcpStream>) -> response::Response {
-        // add HTTP header
-        // add the right html file
-        // make into json?
-        // return GetThankYouHandler::respond()
-        response::Response { content: String::from("content") }
-    }
+    response::Response { content: response }
 }
 
-#[derive(Debug, Clone)]
-struct GetThankYouHandler {}
+fn css_green() -> response::Response {
+    let filename = "../static/css/green.css";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
 
-impl handlers::RequestHandler for GetThankYouHandler {
-    // fulfil request -> Response
-    fn respond(&self, buf: std::io::BufReader<&mut TcpStream>) -> response::Response {
-        // add HTTP header
-        // add the right html file
-        // make into json?
-        // return Response
-        response::Response { content: String::from("content") }
-    }
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
+
+    response::Response { content: response }
 }
 
+fn css_purple() -> response::Response {
+    let filename = "../static/css/purple.css";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
 
-#[derive(Debug, Clone)]
-struct PostContactHandler {}
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
 
-impl handlers::RequestHandler for PostContactHandler {
-    fn respond(&self, buf: std::io::BufReader<&mut TcpStream>) -> response::Response {
-    // fulfil request -> Response
-        // parse body
-        // send email
-        // return Response with "thank you" page
-
-    // add_body()
-        response::Response { content: String::from("content") }
-    }
+    response::Response { content: response }
 }
 
+fn js_script() -> response::Response {
+    let filename = "../static/scripts/script.js";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
 
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
+
+    response::Response { content: response }
+}
+
+fn image_me() -> response::Response {
+    let filename = "../static/images/me.jpeg";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
+
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
+
+    response::Response { content: response }
+}
+
+fn image_linkedin() -> response::Response {
+    let filename = "../static/images/linkedin.jpeg";
+    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
+
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+    );
+
+    response::Response { content: response }
+}
 
 fn main() -> std::io::Result<()> {
     // validate addr
@@ -86,20 +151,22 @@ fn main() -> std::io::Result<()> {
         .next()
         .unwrap();
 
-    let get_index = GetIndexHandler {};
-    let get_contact = GetContactHandler {};
-    let post_contact = PostContactHandler {};
-    let not_found = NotFoundHandler {};
-
 
     // Create server
     let pool_size = 4;
     let handlers = std::collections::HashMap::new();
+
     let srvr = server::Server::build(socket_addr, pool_size, handlers)
         .expect("Unable to create Server")
-        .add_handler(request::Request::GET(String::from("/")), get_index)
-        .add_handler(request::Request::GET(String::from("contact")), get_contact)
-        .add_handler(request::Request::GET(String::from("not_found")), not_found);
+        .add_handler(request::Request::GET(String::from("/")), index)
+        .add_handler(request::Request::GET(String::from("/not_found")), not_found)
+        .add_handler(request::Request::GET(String::from("/scripts/script.js")), js_script)
+        .add_handler(request::Request::GET(String::from("/css/default.css")), css_default)
+        .add_handler(request::Request::GET(String::from("/css/blue.css")), css_blue)
+        .add_handler(request::Request::GET(String::from("/css/green.css")), css_green)
+        .add_handler(request::Request::GET(String::from("/css/purple.css")), css_purple);
+        // .add_handler(request::Request::GET(String::from("/images/me.jpeg")), image_me)
+        // .add_handler(request::Request::GET(String::from("/images/linkedin.jpeg")), image_linkedin);
         // .add_handler(request::Request::POST(String::from("contact"), String::default()), post_contact);
 
     // run Server 

@@ -1,5 +1,3 @@
-use crate::server;
-
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum Request {
@@ -10,7 +8,8 @@ pub enum Request {
 
 impl Request {
     // should this be from implementation instead?
-    pub fn build(request_line: String, server: &server::Server) -> Request {
+    pub fn build(request_line: String) -> Request {
+        println!("{request_line}");
         let mut parts = request_line
             .trim()
             .split_whitespace();
