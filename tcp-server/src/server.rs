@@ -93,18 +93,25 @@ fn handle_connection(
     // parse request
     let req = request::Request::build(request_line);
 
-    // Handle building Response from route handle functions
+    // build response
     let response = match handlers.get(&req) {
         Some(handler) => {
             handler()
         },
         None => {
-            response::Response { content: String::from("404 NOT FOUUND") }
+            // TODO: Figure out better way to handle 404 not found
+            match handlers.get(&request::Request::GET(String::from("/not_found"))) {
+                Some(handler) => handler(),
+                None => {
+                    response::Response { content: "404 NOT FOUUND".as_bytes().to_vec() }
+                }
+            }
         }
     };
 
+
     // write response into TcpStream
-    stream.write_all(response.content.as_bytes()).unwrap();//?;
+    stream.write_all(&response.content).unwrap();//?;
 
 }
 
