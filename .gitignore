@@ -1,6 +1,12 @@
 # Ignore target directory
 target/
 
+# Ignore static directory
+static/
+
+# ignore venv directory
+venv/
+
 # Ignore IDE/editor-specific files
 .vscode/
 .idea/
