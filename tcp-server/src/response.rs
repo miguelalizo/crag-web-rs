@@ -1,3 +1,3 @@
 pub struct Response {
-    pub content: String
+    pub content: Vec<u8>
 }
