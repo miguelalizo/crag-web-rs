@@ -19,7 +19,7 @@ fn not_found() -> response::Response {
         "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
     );
 
-    response::Response { content: response }
+    response::Response { content: response.as_bytes().to_vec() }
 }
 
 fn index() -> response::Response {
@@ -34,111 +34,128 @@ fn index() -> response::Response {
         "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
     );
 
-    response::Response { content: response }}
+    response::Response { content: response.as_bytes().to_vec() }
+}
 
 fn css_default() -> response::Response {
     let filename = "../static/css/default.css";
-    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
-    let len = html.len();
+    let len = css.len();
 
     // format http response
     let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+        "{status_line}\r\nContent-Type: text/css\r\nContent-Length: {len}\r\n\r\n",
     );
+    let mut full_response = response.into_bytes();
+    full_response.extend(css);
 
-    response::Response { content: response }
+    response::Response { content: full_response }
 }
 
 fn css_blue() -> response::Response {
     let filename = "../static/css/blue.css";
-    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
-    let len = html.len();
+    let len = css.len();
 
     // format http response
     let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+        "{status_line}\r\nContent-Type: text/css\r\nContent-Length: {len}\r\n\r\n",
     );
+    let mut full_response = response.into_bytes();
+    full_response.extend(css);
 
-    response::Response { content: response }
+    response::Response { content: full_response }
 }
 
 fn css_green() -> response::Response {
     let filename = "../static/css/green.css";
-    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
-    let len = html.len();
+    let len = css.len();
 
     // format http response
     let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+        "{status_line}\r\nContent-Type: text/css\r\nContent-Length: {len}\r\n\r\n",
     );
+    let mut full_response = response.into_bytes();
+    full_response.extend(css);
 
-    response::Response { content: response }
+    response::Response { content: full_response }
 }
 
 fn css_purple() -> response::Response {
     let filename = "../static/css/purple.css";
-    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
-    let len = html.len();
+    let len = css.len();
 
     // format http response
     let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+        "{status_line}\r\nContent-Type: text/css\r\nContent-Length: {len}\r\n\r\n",
     );
+    let mut full_response = response.into_bytes();
+    full_response.extend(css);
 
-    response::Response { content: response }
+    response::Response { content: full_response }
 }
 
 fn js_script() -> response::Response {
     let filename = "../static/scripts/script.js";
-    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    let html = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
     let len = html.len();
 
     // format http response
     let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+        "{status_line}\r\nContent-Type: application/javascript\r\nContent-Length: {len}\r\n\r\n"
     );
+    let mut full_response = response.into_bytes();
+    full_response.extend(html);
 
-    response::Response { content: response }
+    response::Response { content: full_response }
+
 }
 
 fn image_me() -> response::Response {
     let filename = "../static/images/me.jpeg";
-    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    let html = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
     let len = html.len();
 
     // format http response
     let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+        "{status_line}\r\nContent-Type: image/jpeg\r\nContent-Length: {len}\r\n\r\n",
     );
+    let mut full_response = response.into_bytes();
+    full_response.extend(html);
 
-    response::Response { content: response }
+    response::Response { content: full_response }
 }
 
 fn image_linkedin() -> response::Response {
     let filename = "../static/images/linkedin.jpeg";
-    let html = std::fs::read_to_string(filename).unwrap();//?;;
+    let html = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
     let len = html.len();
 
     // format http response
     let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{html}"
+        "{status_line}\r\nContent-Type: image/jpeg\r\nContent-Length: {len}\r\n\r\n"
     );
 
-    response::Response { content: response }
+    let mut full_response = response.into_bytes();
+    full_response.extend(html);
+
+    response::Response { content: full_response }
 }
 
 fn main() -> std::io::Result<()> {
@@ -164,9 +181,9 @@ fn main() -> std::io::Result<()> {
         .add_handler(request::Request::GET(String::from("/css/default.css")), css_default)
         .add_handler(request::Request::GET(String::from("/css/blue.css")), css_blue)
         .add_handler(request::Request::GET(String::from("/css/green.css")), css_green)
-        .add_handler(request::Request::GET(String::from("/css/purple.css")), css_purple);
-        // .add_handler(request::Request::GET(String::from("/images/me.jpeg")), image_me)
-        // .add_handler(request::Request::GET(String::from("/images/linkedin.jpeg")), image_linkedin);
+        .add_handler(request::Request::GET(String::from("/css/purple.css")), css_purple)
+        .add_handler(request::Request::GET(String::from("/images/me.jpeg")), image_me)
+        .add_handler(request::Request::GET(String::from("/images/linkedin.jpeg")), image_linkedin);
         // .add_handler(request::Request::POST(String::from("contact"), String::default()), post_contact);
 
     // run Server 
