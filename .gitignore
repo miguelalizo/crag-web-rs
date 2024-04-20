@@ -1,9 +1,6 @@
 # Ignore target directory
 target/
 
-# Ignore static directory
-static/
-
 # ignore venv directory
 venv/
 
