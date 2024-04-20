@@ -3,8 +3,8 @@
 [![Crates.io][crates-badge]][crates-url]
 [![MIT licensed][mit-badge]][mit-url]
 
-[crates-badge]: https://img.shields.io/crates/v/tokio.svg
-[crates-url]: https://crates.io/crates/tokio
+[crates-badge]: https://img.shields.io/crates/v/crag-web.svg
+[crates-url]: https://crates.io/crates/crag-web
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: https://github.com/miguelalizo/crag-web-rs/blob/main/LICENSE
 
