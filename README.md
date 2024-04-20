@@ -1,10 +1,13 @@
 # crag-web
 
-![Crag-Web Logo](path/to/logo.png) <!-- You can add your logo here -->
+[![Crates.io][crates-badge]][crates-url]
+[![MIT licensed][mit-badge]][mit-url]
 
-[![Crates.io](https://img.shields.io/crates/v/crag-web.svg)](https://crates.io/crates/crag-web)
-[![License](https://img.shields.io/crates/l/crag-web.svg)](https://opensource.org/licenses/MIT)
-[![Docs](https://docs.rs/crag-web/badge.svg)](https://docs.rs/crag-web)
+[crates-badge]: https://img.shields.io/crates/v/tokio.svg
+[crates-url]: https://crates.io/crates/tokio
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: https://github.com/tokio-rs/tokio/blob/master/LICENSE
+
 
 Crag-Web is a lightweight and flexible HTTP web server framework written in Rust. Inspired by the diverse routes found at climbing crags, Crag-Web allows you to define and handle various HTTP routes with ease, making it simple to build powerful web applications.
 
