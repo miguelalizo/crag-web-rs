@@ -34,8 +34,30 @@ use crag_web::{server, request, response};
 
 // get "/hello"
 fn hello_handler() -> response::Response {
-    response::Response{ content: "Hello, Crag-Web!".as_bytes().to_vec() }
+    let body = "Hello, Crag-Web!";
+    let status_line = "HTTP/1.1 200 OK";
+    let len = body.len();
+
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{body}"
+    );
+    response::Response{ content: response.as_bytes().to_vec() }
 }
+
+// get <bad request>
+fn error_404_handler() -> response::Response {
+    let body = "404 not found";
+    let status_line = "HTTP/1.1 404 Not Found";
+    let len = body.len();
+
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Length: {len}\r\n\r\n{body}"
+    );
+    response::Response{ content: response.as_bytes().to_vec() }
+}
+
 fn main() -> std::io::Result<()> {
     // validate addr
     let addr = "127.0.0.1:8010";
@@ -51,11 +73,13 @@ fn main() -> std::io::Result<()> {
     let handlers = std::collections::HashMap::new();
     let app = server::Server::build(socket_addr, pool_size, handlers)
         .expect("Unable to create Server")
-        .register_error_handler(error_404)
-        .register_handler(request::Request::GET(String::from("/hello")), hello_handler)
+        .register_error_handler(error_404_handler)
+        .register_handler(request::Request::GET(String::from("/hello")), hello_handler);
 
     // Run server
     app.run();
+
+    Ok(())
 }
 ```
 
