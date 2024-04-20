@@ -14,6 +14,9 @@ venv/
 *.swp
 .*.swp
 
+# Ignore .DS_store
+*.DS_store
+
 # Ignore temporary files
 *.tmp
 
