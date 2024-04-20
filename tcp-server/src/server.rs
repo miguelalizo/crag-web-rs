@@ -55,13 +55,21 @@ impl Server {
 
     }
 
-    pub fn add_handler(
+    pub fn register_handler(
         mut self,
         r: request::Request,
         handler: handler::Handler,
     ) -> Self {
         self.handlers.insert(r, handler);
         self
+    }
+
+    pub fn register_error_handler(
+        self,
+        handler: handler::Handler,
+    ) -> Self {
+        let request = request::Request::UNIDENTIFIED;
+        self.register_handler(request, handler)
     }
 
     pub fn run(&self) { 
@@ -79,8 +87,7 @@ impl Server {
 }
 
 fn handle_connection(
-    handlers: HashMap<request::Request,
-    handler::Handler>,
+    handlers: HashMap<request::Request, handler::Handler>,
     mut stream: TcpStream
 ){
     // create buffer to store stream
@@ -89,6 +96,7 @@ fn handle_connection(
     // buffer to store request line (first line from buffer)
     let mut request_line = String::new();
     buf.read_line(&mut request_line).unwrap();
+    let request_line = request_line.replace("//", "/");
 
     // parse request
     let req = request::Request::build(request_line);
@@ -100,10 +108,10 @@ fn handle_connection(
         },
         None => {
             // TODO: Figure out better way to handle 404 not found
-            match handlers.get(&request::Request::GET(String::from("/not_found"))) {
+            match handlers.get(&request::Request::UNIDENTIFIED) {
                 Some(handler) => handler(),
                 None => {
-                    response::Response { content: "404 NOT FOUUND".as_bytes().to_vec() }
+                    handler::default_error_404_handler()
                 }
             }
         }
