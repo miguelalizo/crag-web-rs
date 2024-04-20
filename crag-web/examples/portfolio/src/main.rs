@@ -1,9 +1,9 @@
 use std::net::ToSocketAddrs;
-use tcp_server::server;
-use tcp_server::request;
-use tcp_server::response;
+use crag_web::server;
+use crag_web::request;
+use crag_web::response;
 
-const STATIC_FILES: &str = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/tcp-server/examples/portfolio/static/";
+const STATIC_FILES: &str = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/crag-web/examples/portfolio/static/";
 
 // GET /not_found
 fn not_found() -> response::Response {
