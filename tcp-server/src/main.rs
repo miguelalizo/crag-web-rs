@@ -6,9 +6,9 @@ mod request;
 mod handler;
 mod response;
 
-
+// GET /not_found
 fn not_found() -> response::Response {
-    let filename = "../static/html/404.html";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/html/404.html";
     let html = std::fs::read_to_string(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 404 NOT FOUND";
@@ -22,8 +22,9 @@ fn not_found() -> response::Response {
     response::Response { content: response.as_bytes().to_vec() }
 }
 
+// GET /index
 fn index() -> response::Response {
-    let filename = "../static/html/index.html";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/html/index.html";
     let html = std::fs::read_to_string(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -37,8 +38,9 @@ fn index() -> response::Response {
     response::Response { content: response.as_bytes().to_vec() }
 }
 
+// GET /css/default.css
 fn css_default() -> response::Response {
-    let filename = "../static/css/default.css";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/css/default.css";
     let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -54,8 +56,9 @@ fn css_default() -> response::Response {
     response::Response { content: full_response }
 }
 
+// GET /css/blue.css
 fn css_blue() -> response::Response {
-    let filename = "../static/css/blue.css";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/css/blue.css";
     let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -71,8 +74,9 @@ fn css_blue() -> response::Response {
     response::Response { content: full_response }
 }
 
+// GET /css/green.css
 fn css_green() -> response::Response {
-    let filename = "../static/css/green.css";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/css/green.css";
     let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -88,8 +92,9 @@ fn css_green() -> response::Response {
     response::Response { content: full_response }
 }
 
+// GET /css/purple.css
 fn css_purple() -> response::Response {
-    let filename = "../static/css/purple.css";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/css/purple.css";
     let css = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -105,8 +110,9 @@ fn css_purple() -> response::Response {
     response::Response { content: full_response }
 }
 
+// GET /scripts/script.js
 fn js_script() -> response::Response {
-    let filename = "../static/scripts/script.js";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/scripts/script.js";
     let html = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -123,8 +129,9 @@ fn js_script() -> response::Response {
 
 }
 
+// GET /image/me.jpeg
 fn image_me() -> response::Response {
-    let filename = "../static/images/me.jpeg";
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/images/me.jpeg";
     let html = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -140,8 +147,9 @@ fn image_me() -> response::Response {
     response::Response { content: full_response }
 }
 
-fn image_linkedin() -> response::Response {
-    let filename = "../static/images/linkedin.jpeg";
+// GET /image/404.jpeg
+fn image_404() -> response::Response {
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/images/404.jpeg";
     let html = std::fs::read(filename).unwrap();//?;;
     // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
     let status_line = "HTTP/1.1 200 OK";
@@ -149,7 +157,44 @@ fn image_linkedin() -> response::Response {
 
     // format http response
     let response = format!(
+        "{status_line}\r\nContent-Type: image/jpeg\r\nContent-Length: {len}\r\n\r\n",
+    );
+    let mut full_response = response.into_bytes();
+    full_response.extend(html);
+
+    response::Response { content: full_response }
+}
+
+
+
+// GET /image/linkedin.jpeg
+fn image_linkedin() -> response::Response {
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/images/linkedin.jpeg";
+    let html = std::fs::read(filename).unwrap();//?;;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
+
+    // format http response
+    let response = format!(
         "{status_line}\r\nContent-Type: image/jpeg\r\nContent-Length: {len}\r\n\r\n"
+    );
+
+    let mut full_response = response.into_bytes();
+    full_response.extend(html);
+
+    response::Response { content: full_response }
+}
+
+// GET <bad request>
+fn error_404() -> response::Response {
+    let filename = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/static/html/404.html";
+    let html = std::fs::read(filename).unwrap();//?;;
+    let status_line = "HTTP/1.1 200 OK";
+    let len = html.len();
+
+    // format http response
+    let response = format!(
+        "{status_line}\r\nContent-Type: text/html\r\nContent-Length: {len}\r\n\r\n"
     );
 
     let mut full_response = response.into_bytes();
@@ -175,15 +220,17 @@ fn main() -> std::io::Result<()> {
 
     let srvr = server::Server::build(socket_addr, pool_size, handlers)
         .expect("Unable to create Server")
-        .add_handler(request::Request::GET(String::from("/")), index)
-        .add_handler(request::Request::GET(String::from("/not_found")), not_found)
-        .add_handler(request::Request::GET(String::from("/scripts/script.js")), js_script)
-        .add_handler(request::Request::GET(String::from("/css/default.css")), css_default)
-        .add_handler(request::Request::GET(String::from("/css/blue.css")), css_blue)
-        .add_handler(request::Request::GET(String::from("/css/green.css")), css_green)
-        .add_handler(request::Request::GET(String::from("/css/purple.css")), css_purple)
-        .add_handler(request::Request::GET(String::from("/images/me.jpeg")), image_me)
-        .add_handler(request::Request::GET(String::from("/images/linkedin.jpeg")), image_linkedin);
+        .register_error_handler(error_404)
+        .register_handler(request::Request::GET(String::from("/images/404.jpeg")), image_404)
+        .register_handler(request::Request::GET(String::from("/")), index)
+        .register_handler(request::Request::GET(String::from("/not_found")), not_found)
+        .register_handler(request::Request::GET(String::from("/scripts/script.js")), js_script)
+        .register_handler(request::Request::GET(String::from("/css/default.css")), css_default)
+        .register_handler(request::Request::GET(String::from("/css/blue.css")), css_blue)
+        .register_handler(request::Request::GET(String::from("/css/green.css")), css_green)
+        .register_handler(request::Request::GET(String::from("/css/purple.css")), css_purple)
+        .register_handler(request::Request::GET(String::from("/images/me.jpeg")), image_me)
+        .register_handler(request::Request::GET(String::from("/images/linkedin.jpeg")), image_linkedin);
         // .add_handler(request::Request::POST(String::from("contact"), String::default()), post_contact);
 
     // run Server 
