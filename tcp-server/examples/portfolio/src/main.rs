@@ -1,7 +1,4 @@
 use std::net::ToSocketAddrs;
-
-
-// use tcp_server::threadpool;
 use tcp_server::server;
 use tcp_server::request;
 use tcp_server::response;
