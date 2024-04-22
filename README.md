@@ -14,8 +14,9 @@ Crag-Web is a lightweight and flexible HTTP web server framework written in Rust
 ## Features
 
 - **Simple Routing**: Define routes for handling HTTP requests with ease.
-- **Multithreading with Built-in Threadpool**: Utilize the built-in threadpool, with custom Worker thread amounts, to handle concurrent requests efficiently.
+- **Multithreading with Built-in Threadpool**: Defines a built-in threadpool, with custom Worker thread amounts, to handle concurrent requests efficiently.
 - **Extensible**: Designed to be easily extendable with custom components.
+- **CSRF Token Validation**: Designed to safely handle POST requests by impelmenting CSRF validation.
 
 ## Installation
 
