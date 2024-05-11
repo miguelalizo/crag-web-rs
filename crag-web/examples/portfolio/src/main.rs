@@ -3,7 +3,7 @@ use crag_web::server;
 use crag_web::request;
 use crag_web::response;
 
-const STATIC_FILES: &str = "/Users/miguelalizo/projects/portfolio-rust-server/rust-server/crag-web/examples/portfolio/static/";
+const STATIC_FILES: &str = "/Users/miguelalizo/projects/portfolio-rust-server/crag-web-rs/crag-web/examples/portfolio/static/";
 
 // GET /not_found
 fn not_found() -> response::Response {
