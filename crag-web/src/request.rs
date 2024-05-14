@@ -28,6 +28,14 @@ impl Request {
             _ => Request::UNIDENTIFIED
         }
     }
+    pub fn add_body(&mut self, body: String) {
+        match self {
+            Request::POST(_, ref mut b) => *b = body,
+            _ => ()
+        };
+
+    }
+
 }
 
 
