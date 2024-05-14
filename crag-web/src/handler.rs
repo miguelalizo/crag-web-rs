@@ -1,9 +1,10 @@
 use crate::response;
+use crate::request::Request;
 
-pub type Handler = fn() -> response::Response;
+pub type Handler = fn(Request) -> response::Response;
 
 /// Default handler for 404 errors
-pub fn default_error_404_handler() -> response::Response {
+pub fn default_error_404_handler(_request: Request) -> response::Response {
     let bytes = include_bytes!("../static/html/404.html");
     let status_line = "HTTP/1.1 404 Not Found";
     let len = bytes.len();
