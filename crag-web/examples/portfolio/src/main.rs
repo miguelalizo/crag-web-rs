@@ -42,8 +42,8 @@ fn index(_req: request::Request) -> response::Response {
 
 fn send_email(){
     // Set up SMTP credentials (your Gmail address and password)
-    let email = "pinchonalizo@gmail.com";
-    let password = "nibgtodnatvxcamx";
+    let email = "some_email";
+    let password = "some_password";
     let smtp_server = "smtp.gmail.com";
 
     // Create SMTP client with SSL
@@ -54,17 +54,17 @@ fn send_email(){
 
     // Define the email
     let email = Message::builder()
-        .from("miguel.e.alizo@gmail.com".parse().unwrap())
-        .to("pinchonalizo@gmail.com".parse().unwrap())
+        .from("som_email".parse().unwrap())
+        .to("some_email".parse().unwrap())
         .subject("Rust Email")
         .body(String::from("Hello, this is a test email from Rust!"))
         .unwrap();
 
     // Send the email
-    // match smtp_client.send(&email) {
-    //     Ok(_) => println!("Email sent successfully!"),
-    //     Err(e) => eprintln!("Failed to send email: {:?}", e),
-    // }
+    match smtp_client.send(&email) {
+        Ok(_) => println!("Email sent successfully!"),
+        Err(e) => eprintln!("Failed to send email: {:?}", e),
+    }
 }
 
 // GET /contact
