@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 crag-web = { path = "../../" }
+lettre = "0.10"
+lettre_email = "0.9"
