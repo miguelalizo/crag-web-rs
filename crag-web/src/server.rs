@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::net::{TcpListener, SocketAddr, TcpStream};
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Write, Read, BufReader};
 use std::error;
 use std::fmt;
 
 use crate::threadpool::{self, PoolCreationError};
-use crate::request;
+use crate::request::{self, Request};
 use crate::handler;
-use crate::response;
 
 
 #[derive(Debug)]
@@ -74,15 +73,18 @@ impl Server {
 
     pub fn run(&self) { 
         for stream in self.tcp_listener.incoming() {
-            let stream = stream.unwrap(); // handle unwrap case later
+            match stream {
+                Ok(stream) => {
+                    // TODO: use Arc instead of cloning entire hashmap
+                    let cloned_handlers = self.handlers.clone();
 
-            let cloned_handlers = self.handlers.clone();
-
-            self.pool.execute( || {
-                handle_connection(cloned_handlers, stream); //?
-            });
+                    self.pool.execute( || {
+                        handle_connection(cloned_handlers, stream); //?
+                    });
+                }
+                Err(e) => panic!("{} Error handling connection!", e)
+            }
         }
-
     }
 }
 
@@ -90,36 +92,78 @@ fn handle_connection(
     handlers: HashMap<request::Request, handler::Handler>,
     mut stream: TcpStream
 ){
-    // create buffer to store stream
-    let mut buf = std::io::BufReader::new(&mut stream);
-
-    // buffer to store request line (first line from buffer)
-    let mut request_line = String::new();
-    buf.read_line(&mut request_line).unwrap();
-    let request_line = request_line.replace("//", "/");
-
-    // parse request
-    let req = request::Request::build(request_line);
+    let req = parse_request(&mut stream).expect("Error parsing request");
+    let hashed_req = match req {
+        request::Request::GET(ref a) => request::Request::GET(a.clone()),
+        request::Request::POST(ref a, _) => request::Request::POST(a.clone(), String::default()),
+        request::Request::UNIDENTIFIED => request::Request::UNIDENTIFIED
+    };
 
     // build response
-    let response = match handlers.get(&req) {
+    let response = match handlers.get(&hashed_req) {
         Some(handler) => {
-            handler()
+            handler(req)
         },
         None => {
             // TODO: Figure out better way to handle 404 not found
             match handlers.get(&request::Request::UNIDENTIFIED) {
-                Some(handler) => handler(),
+                Some(handler) => handler(req),
                 None => {
-                    handler::default_error_404_handler()
+                    handler::default_error_404_handler(req)
                 }
             }
         }
     };
-
 
     // write response into TcpStream
     stream.write_all(&response.content).unwrap();//?;
 
 }
 
+
+// TODO: Fix return type
+fn parse_request(stream: &mut TcpStream) -> Result<Request, std::io::Error> {
+    // create buffer
+    let mut request: Vec<String> = vec![];
+    let mut buffer = BufReader::new(stream);
+
+    // Read the HTTP request headers until end of header
+    while request.is_empty() || request.last().insert(&String::default()).len() > 2 {
+        let mut next_line = String::new();
+        buffer.read_line(&mut next_line)?;
+        request.push(next_line);
+    }
+
+    // build request from header
+    let mut req = request::Request::build(
+        request
+            .first()
+            .unwrap_or(&"/".to_owned())
+            .to_owned()
+    );
+
+    if let request::Request::POST(_, _) = req {
+        // Find the Content-Length header
+        let content_length = request
+            .iter()
+            // .lines()
+            .find(|line| line.starts_with("Content-Length:"))
+            .map(|line| {
+                line.trim()
+                    .split(":")
+                    .nth(1)
+                    .and_then(|value| value.trim().parse::<usize>().ok())
+            })
+            .flatten()
+            .unwrap_or(0);
+
+        // Parse the request body based on Content-Length
+        let mut body_buffer = vec![0; content_length];
+        buffer.read(&mut body_buffer)?;
+
+        // Add body to request
+        req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default());
+    };
+
+    Ok(req)
+}
