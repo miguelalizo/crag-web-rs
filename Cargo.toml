@@ -1,0 +1,3 @@
+[workspace]
+members = ["crag-web", "hello", "portfolio"]
+resolver = "2"
