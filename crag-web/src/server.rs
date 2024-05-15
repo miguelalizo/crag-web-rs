@@ -4,9 +4,11 @@ use std::fmt;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::ToSocketAddrs;
 use std::net::{TcpListener, TcpStream};
+use std::sync::Arc;
 
 use crate::handler;
 use crate::request;
+use crate::response;
 use crate::threadpool;
 
 #[derive(Debug)]
@@ -24,11 +26,10 @@ impl fmt::Display for ServerError {
 
 impl error::Error for ServerError {}
 
-#[derive(Debug)]
 pub struct Server {
     tcp_listener: TcpListener,
     pool: threadpool::ThreadPool,
-    handlers: HashMap<request::Request, handler::Handler>,
+    handlers: Arc<HashMap<request::Request, handler::Handler>>,
 }
 
 pub struct ServerBuilder {
@@ -55,18 +56,25 @@ impl ServerBuilder {
         let server = Server {
             tcp_listener,
             pool,
-            handlers: self.handlers,
+            handlers: Arc::new(self.handlers),
         };
 
         Ok(server)
     }
 
-    pub fn register_handler(mut self, r: request::Request, handler: handler::Handler) -> Self {
-        self.handlers.insert(r, handler);
+    pub fn register_handler(
+        mut self,
+        r: request::Request,
+        handler: impl Fn(request::Request) -> response::Response + Send + Sync + 'static,
+    ) -> Self {
+        self.handlers.insert(r, Box::new(handler));
         self
     }
 
-    pub fn register_error_handler(self, handler: handler::Handler) -> Self {
+    pub fn register_error_handler(
+        self,
+        handler: impl Fn(request::Request) -> response::Response + Send + Sync + 'static,
+    ) -> Self {
         let request = request::Request::UNIDENTIFIED;
         self.register_handler(request, handler)
     }
@@ -82,11 +90,10 @@ impl Server {
         for stream in self.tcp_listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    // TODO: use Arc instead of cloning entire hashmap
-                    let cloned_handlers = self.handlers.clone();
+                    let handlers = self.handlers.clone();
 
                     self.pool.execute(|| {
-                        handle_connection(cloned_handlers, stream); //?
+                        handle_connection(handlers, stream);
                     });
                 }
                 Err(e) => panic!("{} Error handling connection!", e),
@@ -95,7 +102,10 @@ impl Server {
     }
 }
 
-fn handle_connection(handlers: HashMap<request::Request, handler::Handler>, mut stream: TcpStream) {
+fn handle_connection(
+    handlers: Arc<HashMap<request::Request, handler::Handler>>,
+    mut stream: TcpStream,
+) {
     let req = parse_request(&mut stream).expect("Error parsing request");
     let hashed_req = match req {
         request::Request::GET(ref a) => request::Request::GET(a.clone()),
@@ -180,8 +190,15 @@ mod test {
     fn test_builder_pattern() {
         // Create server
         let _builder = Server::build()
-            .register_error_handler(handler::default_error_404_handler)
-            .register_handler(request::Request::GET("/".to_owned()), hello_handler)
+            .register_error_handler(Box::new(handler::default_error_404_handler))
+            .register_handler(
+                request::Request::GET("/".to_owned()),
+                Box::new(|_req| response::Response::Ok("Hello, Crag-Web!".to_owned())),
+            )
+            .register_handler(
+                request::Request::GET("/hello".to_owned()),
+                Box::new(hello_handler),
+            )
             .finalize(("127.0.0.1", 8010), 4)
             .unwrap();
     }
