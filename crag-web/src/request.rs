@@ -1,9 +1,8 @@
-
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum Request {
     GET(String),
     POST(String, String),
-    UNIDENTIFIED
+    UNIDENTIFIED,
 }
 
 impl Request {
@@ -23,16 +22,12 @@ impl Request {
         match method {
             "GET" => Request::GET(String::from(uri)),
             "POST" => Request::POST(String::from(uri), String::default()),
-            _ => Request::UNIDENTIFIED
+            _ => Request::UNIDENTIFIED,
         }
     }
     pub fn add_body(&mut self, body: String) {
         if let Request::POST(_, ref mut b) = self {
             *b = body;
         };
-
     }
-
 }
-
-

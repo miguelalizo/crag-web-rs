@@ -1,12 +1,12 @@
 use std::error;
 use std::fmt;
-use std::thread;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
+use std::thread;
 
 #[derive(Debug)]
 pub enum PoolCreationError {
-    ZeroSize
+    ZeroSize,
 }
 
 impl fmt::Display for PoolCreationError {
@@ -15,27 +15,27 @@ impl fmt::Display for PoolCreationError {
     }
 }
 
-impl error::Error for PoolCreationError { }   
+impl error::Error for PoolCreationError {}
 
 #[derive(Debug)]
 pub struct ThreadPool {
     _workers: Vec<Worker>,
-    sender: mpsc::Sender<Job>
+    sender: mpsc::Sender<Job>,
 }
 
 impl ThreadPool {
     /// Create a new ThreadPool
-    /// 
+    ///
     /// The size is the number of threads in the pool.
     pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError> {
         if size < 1 {
             return Err(PoolCreationError::ZeroSize);
         }
-        
+
         // use mpsc channel to send requests to workers
         let (sender, receiver) = mpsc::channel();
 
-        // workers will need a Mutex to share the receiver 
+        // workers will need a Mutex to share the receiver
         // across threads so we wrap in thread safe
         // smart pointer Arc
         let receiver = Arc::new(Mutex::new(receiver));
@@ -47,13 +47,16 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
-        Ok(ThreadPool { _workers: workers, sender })
+        Ok(ThreadPool {
+            _workers: workers,
+            sender,
+        })
     }
     /// Execute a request in the stream by being passed in the
     /// handle_connection function as a closure
     pub fn execute<F>(&self, f: F)
     where
-        F: FnOnce() + Send + 'static
+        F: FnOnce() + Send + 'static,
     {
         let job: Job = Box::new(f);
         self.sender.send(job).expect("sender error");
@@ -63,12 +66,11 @@ impl ThreadPool {
 #[derive(Debug)]
 struct Worker {
     _id: usize,
-    _thread: thread::JoinHandle<()>
+    _thread: thread::JoinHandle<()>,
 }
 
-
 impl Worker {
-    /// Create a new Worker with a receiver clone 
+    /// Create a new Worker with a receiver clone
     /// and spawns a thread that loops over jobs sent over the
     /// receiver and executes the job
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
@@ -82,11 +84,12 @@ impl Worker {
             println!("Worker {id} received job. Executing.");
 
             job();
-        } 
-        
-        );
+        });
 
-        Worker { _id: id, _thread: thread }
+        Worker {
+            _id: id,
+            _thread: thread,
+        }
     }
 }
 

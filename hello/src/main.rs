@@ -1,5 +1,5 @@
+use crag_web::{request, response, server};
 use std::net::ToSocketAddrs;
-use crag_web::{server, request, response};
 
 // get "/hello"
 fn hello_handler(_request: request::Request) -> response::Response {
@@ -8,10 +8,10 @@ fn hello_handler(_request: request::Request) -> response::Response {
     let len = body.len();
 
     // format http response
-    let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{body}"
-    );
-    response::Response{ content: response.as_bytes().to_vec() }
+    let response = format!("{status_line}\r\nContent-Length: {len}\r\n\r\n{body}");
+    response::Response {
+        content: response.as_bytes().to_vec(),
+    }
 }
 
 // get <bad request>
@@ -21,10 +21,10 @@ fn error_404_handler(_request: request::Request) -> response::Response {
     let len = body.len();
 
     // format http response
-    let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{body}"
-    );
-    response::Response{ content: response.as_bytes().to_vec() }
+    let response = format!("{status_line}\r\nContent-Length: {len}\r\n\r\n{body}");
+    response::Response {
+        content: response.as_bytes().to_vec(),
+    }
 }
 
 fn main() -> std::io::Result<()> {
@@ -32,10 +32,10 @@ fn main() -> std::io::Result<()> {
     let addr = "127.0.0.1:8010";
     let socket_addr = match addr.to_socket_addrs() {
         Ok(addr_iter) => addr_iter,
-        Err(_) => panic!("could not resolve socket address")
+        Err(_) => panic!("could not resolve socket address"),
     }
-        .next()
-        .unwrap();
+    .next()
+    .unwrap();
 
     // Create server
     let pool_size = 4;
