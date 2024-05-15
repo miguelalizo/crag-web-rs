@@ -148,18 +148,20 @@ fn parse_request(stream: &mut TcpStream) -> Result<Request, std::io::Error> {
             .iter()
             // .lines()
             .find(|line| line.starts_with("Content-Length:"))
-            .map(|line| {
+            .and_then(|line| {
                 line.trim()
-                    .split(":")
+                    .split(':')
                     .nth(1)
-                    .and_then(|value| value.trim().parse::<usize>().ok())
-            })
-            .flatten()
+                    .and_then(|value| value.trim().parse::<usize>().ok())})
             .unwrap_or(0);
 
         // Parse the request body based on Content-Length
+        // TODO: Ask John about read_to_end vs read
+        // Read to end blocks until the client closes the connection
+        // which it will not until the server sends a response
+        // thus it will block until client times out
         let mut body_buffer = vec![0; content_length];
-        buffer.read(&mut body_buffer)?;
+        buffer.read_exact(&mut body_buffer)?;
 
         // Add body to request
         req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default());

@@ -10,8 +10,7 @@ impl Request {
     // should this be from implementation instead?
     pub fn build(request_line: String) -> Request {
         println!("{request_line}");
-        let mut parts = request_line
-            .split_whitespace();
+        let mut parts = request_line.split_whitespace();
 
         let method = parts.next().unwrap_or("GET");
         let uri = parts.next().unwrap_or("not_implemented");
@@ -28,9 +27,8 @@ impl Request {
         }
     }
     pub fn add_body(&mut self, body: String) {
-        match self {
-            Request::POST(_, ref mut b) => *b = body,
-            _ => ()
+        if let Request::POST(_, ref mut b) = self {
+            *b = body;
         };
 
     }
