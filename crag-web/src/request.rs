@@ -11,7 +11,6 @@ impl Request {
     pub fn build(request_line: String) -> Request {
         println!("{request_line}");
         let mut parts = request_line
-            .trim()
             .split_whitespace();
 
         let method = parts.next().unwrap_or("GET");

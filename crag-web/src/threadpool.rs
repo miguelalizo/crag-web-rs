@@ -19,7 +19,7 @@ impl error::Error for PoolCreationError { }
 
 #[derive(Debug)]
 pub struct ThreadPool {
-    workers: Vec<Worker>,
+    _workers: Vec<Worker>,
     sender: mpsc::Sender<Job>
 }
 
@@ -47,7 +47,7 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
-        Ok(ThreadPool { workers, sender })
+        Ok(ThreadPool { _workers: workers, sender })
     }
     /// Execute a request in the stream by being passed in the
     /// handle_connection function as a closure
@@ -62,8 +62,8 @@ impl ThreadPool {
 
 #[derive(Debug)]
 struct Worker {
-    id: usize,
-    thread: thread::JoinHandle<()>
+    _id: usize,
+    _thread: thread::JoinHandle<()>
 }
 
 
@@ -86,7 +86,7 @@ impl Worker {
         
         );
 
-        Worker { id, thread }
+        Worker { _id: id, _thread: thread }
     }
 }
 

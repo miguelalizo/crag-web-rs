@@ -2,7 +2,7 @@ use std::net::ToSocketAddrs;
 use crag_web::{server, request, response};
 
 // get "/hello"
-fn hello_handler(request: request::Request) -> response::Response {
+fn hello_handler(_request: request::Request) -> response::Response {
     let body = "Hello, Crag-Web!";
     let status_line = "HTTP/1.1 200 OK";
     let len = body.len();
@@ -15,7 +15,7 @@ fn hello_handler(request: request::Request) -> response::Response {
 }
 
 // get <bad request>
-fn error_404_handler(request: request::Request) -> response::Response {
+fn error_404_handler(_request: request::Request) -> response::Response {
     let body = "404 not found";
     let status_line = "HTTP/1.1 404 Not Found";
     let len = body.len();

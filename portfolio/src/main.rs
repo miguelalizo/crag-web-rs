@@ -1,4 +1,4 @@
-use lettre::{Message, SmtpTransport, Transport};
+use lettre::SmtpTransport;
 use lettre::transport::smtp::authentication::Credentials;
 
 use std::net::ToSocketAddrs;
@@ -6,7 +6,7 @@ use crag_web::server;
 use crag_web::request;
 use crag_web::response;
 
-const STATIC_FILES: &str = "/Users/miguelalizo/projects/portfolio-rust-server/crag-web-rs/crag-web/examples/portfolio/static/";
+const STATIC_FILES: &str = "./static/";
 
 // GET /not_found
 fn not_found(_req: request::Request) -> response::Response {
@@ -47,30 +47,30 @@ fn send_email(){
     let smtp_server = "smtp.gmail.com";
 
     // Create SMTP client with SSL
-    let smtp_client = SmtpTransport::starttls_relay(smtp_server)
+    let _smtp_client = SmtpTransport::starttls_relay(smtp_server)
         .unwrap()
         .credentials(Credentials::new(email.to_string(), password.to_string()))
         .build();
 
-    // Define the email
-    let email = Message::builder()
-        .from("som_email".parse().unwrap())
-        .to("some_email".parse().unwrap())
-        .subject("Rust Email")
-        .body(String::from("Hello, this is a test email from Rust!"))
-        .unwrap();
+    // // Define the email
+    // let email = Message::builder()
+    //     .from("som_email".parse().unwrap())
+    //     .to("some_email".parse().unwrap())
+    //     .subject("Rust Email")
+    //     .body(String::from("Hello, this is a test email from Rust!"))
+    //     .unwrap();
 
-    // Send the email
-    match smtp_client.send(&email) {
-        Ok(_) => println!("Email sent successfully!"),
-        Err(e) => eprintln!("Failed to send email: {:?}", e),
-    }
+    // // Send the email
+    // match smtp_client.send(&email) {
+    //     Ok(_) => println!("Email sent successfully!"),
+    //     Err(e) => eprintln!("Failed to send email: {:?}", e),
+    // }
 }
 
 // GET /contact
 fn contact(req: request::Request) -> response::Response {
-    let mut filename =  match req {
-        request::Request::POST(_, body) => {
+    let filename =  match req {
+        request::Request::POST(_, _body) => {
             // println!("{}", body);
             send_email();
             format!("{STATIC_FILES}html/thanks.html")
