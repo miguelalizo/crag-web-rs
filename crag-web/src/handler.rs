@@ -1,7 +1,7 @@
 use crate::request::Request;
 use crate::response;
 
-pub type Handler = fn(Request) -> response::Response;
+pub type Handler = Box<dyn Fn(Request) -> response::Response + Send + Sync + 'static>;
 
 /// Default handler for 404 errors
 pub fn default_error_404_handler(_request: Request) -> response::Response {
