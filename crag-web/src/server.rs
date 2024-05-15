@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::error;
 use std::fmt;
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::net::ToSocketAddrs;
+use std::net::{TcpListener, TcpStream};
 
 use crate::handler;
 use crate::request;
@@ -10,6 +11,7 @@ use crate::threadpool;
 
 #[derive(Debug)]
 pub enum ServerError {
+    BadSocketaddr,
     ServerCreation(std::io::Error),
     PoolSizeError(threadpool::PoolCreationError),
 }
@@ -29,12 +31,23 @@ pub struct Server {
     handlers: HashMap<request::Request, handler::Handler>,
 }
 
-impl Server {
-    pub fn build(
-        socket_addr: SocketAddr,
+pub struct ServerBuilder {
+    handlers: HashMap<request::Request, handler::Handler>,
+}
+
+impl ServerBuilder {
+    pub fn finalize(
+        self,
+        addr: impl ToSocketAddrs,
         pool_size: usize,
-        handlers: HashMap<request::Request, handler::Handler>,
     ) -> Result<Server, ServerError> {
+        let socket_addr = match addr.to_socket_addrs() {
+            Ok(addr_iter) => addr_iter,
+            Err(_) => panic!("could not resolve socket address"),
+        }
+        .next()
+        .ok_or(ServerError::BadSocketaddr)?;
+
         let tcp_listener = TcpListener::bind(socket_addr).map_err(ServerError::ServerCreation)?;
 
         let pool = threadpool::ThreadPool::build(pool_size).map_err(ServerError::PoolSizeError)?;
@@ -42,7 +55,7 @@ impl Server {
         let server = Server {
             tcp_listener,
             pool,
-            handlers,
+            handlers: self.handlers,
         };
 
         Ok(server)
@@ -57,7 +70,14 @@ impl Server {
         let request = request::Request::UNIDENTIFIED;
         self.register_handler(request, handler)
     }
+}
 
+impl Server {
+    pub fn build() -> ServerBuilder {
+        ServerBuilder {
+            handlers: HashMap::new(),
+        }
+    }
     pub fn run(&self) {
         for stream in self.tcp_listener.incoming() {
             match stream {
@@ -142,4 +162,35 @@ fn parse_request(stream: &mut TcpStream) -> Result<request::Request, std::io::Er
     };
 
     Ok(req)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::handler;
+    use crate::request;
+    use crate::response;
+
+    // get "/hello"
+    fn hello_handler(_request: request::Request) -> response::Response {
+        let body = "Hello, Crag-Web!";
+        let status_line = "HTTP/1.1 200 OK";
+        let len = body.len();
+
+        // format http response
+        let response = format!("{status_line}\r\nContent-Length: {len}\r\n\r\n{body}");
+        response::Response {
+            content: response.as_bytes().to_vec(),
+        }
+    }
+
+    #[test]
+    fn test_builder_pattern() {
+        // Create server
+        let _builder = Server::build()
+            .register_error_handler(handler::default_error_404_handler)
+            .register_handler(request::Request::GET("/".to_owned()), hello_handler)
+            .finalize(("127.0.0.1", 8010), 4)
+            .unwrap();
+    }
 }
