@@ -282,21 +282,7 @@ fn error_404(_req: request::Request) -> response::Response {
 }
 
 fn main() -> std::io::Result<()> {
-    // validate addr
-    let addr = "127.0.0.1:8010";
-    let socket_addr = match addr.to_socket_addrs() {
-        Ok(addr_iter) => addr_iter,
-        Err(_) => panic!("could not resolve socket address"),
-    }
-    .next()
-    .unwrap();
-
-    // Create server
-    let pool_size = 4;
-    let handlers = std::collections::HashMap::new();
-
-    let srvr = server::Server::build(socket_addr, pool_size, handlers)
-        .expect("Unable to create Server")
+    let srvr = server::Server::build()
         .register_error_handler(error_404)
         .register_handler(
             request::Request::GET(String::from("/images/404.jpeg")),
@@ -340,8 +326,9 @@ fn main() -> std::io::Result<()> {
         .register_handler(
             request::Request::POST(String::from("/contact"), String::default()),
             contact,
-        );
-    // .add_handler(request::Request::POST(String::from("contact"), String::default()), post_contact);
+        )
+        .finalize(("127.0.0.1", 8010), 4)
+        .unwrap();
 
     // run Server
     srvr.run();
