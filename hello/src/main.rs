@@ -1,5 +1,4 @@
 use crag_web::{request, response, server};
-use std::net::ToSocketAddrs;
 
 // get "/hello"
 fn hello_handler(_request: request::Request) -> response::Response {
@@ -28,22 +27,11 @@ fn error_404_handler(_request: request::Request) -> response::Response {
 }
 
 fn main() -> std::io::Result<()> {
-    // validate addr
-    let addr = "127.0.0.1:8010";
-    let socket_addr = match addr.to_socket_addrs() {
-        Ok(addr_iter) => addr_iter,
-        Err(_) => panic!("could not resolve socket address"),
-    }
-    .next()
-    .unwrap();
-
-    // Create server
-    let pool_size = 4;
-    let handlers = std::collections::HashMap::new();
-    let app = server::Server::build(socket_addr, pool_size, handlers)
-        .expect("Unable to create Server")
+    let app = server::Server::build()
         .register_error_handler(error_404_handler)
-        .register_handler(request::Request::GET(String::from("/hello")), hello_handler);
+        .register_handler(request::Request::GET(String::from("/hello")), hello_handler)
+        .finalize(("127.0.0.1", 8010), 4)
+        .unwrap();
 
     // Run server
     app.run();
