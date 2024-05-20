@@ -1,6 +1,5 @@
+use anyhow::Result;
 use std::collections::HashMap;
-use std::error;
-use std::fmt;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::ToSocketAddrs;
 use std::net::{TcpListener, TcpStream};
@@ -10,21 +9,6 @@ use crate::handler;
 use crate::request;
 use crate::response;
 use crate::threadpool;
-
-#[derive(Debug)]
-pub enum ServerError {
-    BadSocketaddr,
-    ServerCreation(std::io::Error),
-    PoolSizeError(threadpool::PoolCreationError),
-}
-
-impl fmt::Display for ServerError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl error::Error for ServerError {}
 
 pub struct Server {
     tcp_listener: TcpListener,
@@ -37,21 +21,15 @@ pub struct ServerBuilder {
 }
 
 impl ServerBuilder {
-    pub fn finalize(
-        self,
-        addr: impl ToSocketAddrs,
-        pool_size: usize,
-    ) -> Result<Server, ServerError> {
-        let socket_addr = match addr.to_socket_addrs() {
-            Ok(addr_iter) => addr_iter,
-            Err(_) => panic!("could not resolve socket address"),
-        }
-        .next()
-        .ok_or(ServerError::BadSocketaddr)?;
+    pub fn finalize(self, addr: impl ToSocketAddrs, pool_size: usize) -> Result<Server> {
+        let socket_addr = addr
+            .to_socket_addrs()?
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("Unable to resolve address"))?;
 
-        let tcp_listener = TcpListener::bind(socket_addr).map_err(ServerError::ServerCreation)?;
+        let tcp_listener = TcpListener::bind(socket_addr)?;
 
-        let pool = threadpool::ThreadPool::build(pool_size).map_err(ServerError::PoolSizeError)?;
+        let pool = threadpool::ThreadPool::build(pool_size)?;
 
         let server = Server {
             tcp_listener,
