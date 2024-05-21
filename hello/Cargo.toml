@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 crag-web = { path = "../crag-web" }
+anyhow = "1.0.83"

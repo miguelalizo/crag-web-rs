@@ -9,7 +9,7 @@ use std::net::ToSocketAddrs;
 const STATIC_FILES: &str = "./static/";
 
 // GET /not_found
-fn not_found(_req: request::Request) -> response::Response {
+fn not_found(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}html/404.html");
     let html = std::fs::read_to_string(filename).unwrap(); //?;;
                                                            // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -19,13 +19,13 @@ fn not_found(_req: request::Request) -> response::Response {
     // format http response
     let response = format!("{status_line}\r\nContent-Length: {len}\r\n\r\n{html}");
 
-    response::Response {
+    Ok(response::Response {
         content: response.as_bytes().to_vec(),
-    }
+    })
 }
 
 // GET /index
-fn index(_req: request::Request) -> response::Response {
+fn index(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}html/index.html");
     let html = std::fs::read_to_string(filename).unwrap(); //?;;
                                                            // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -68,7 +68,7 @@ fn send_email() {
 }
 
 // GET /contact
-fn contact(req: request::Request) -> response::Response {
+fn contact(req: request::Request) -> anyhow::Result<response::Response> {
     let filename = match req {
         request::Request::POST(_, _body) => {
             // println!("{}", body);
@@ -91,7 +91,7 @@ fn contact(req: request::Request) -> response::Response {
 }
 
 // GET /css/default.css
-fn css_default(_req: request::Request) -> response::Response {
+fn css_default(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}css/default.css");
     let css = std::fs::read(filename).unwrap(); //?;;
                                                 // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -110,7 +110,7 @@ fn css_default(_req: request::Request) -> response::Response {
 }
 
 // GET /css/blue.css
-fn css_blue(_req: request::Request) -> response::Response {
+fn css_blue(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}css/blue.css");
     let css = std::fs::read(filename).unwrap(); //?;;
                                                 // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -129,7 +129,7 @@ fn css_blue(_req: request::Request) -> response::Response {
 }
 
 // GET /css/green.css
-fn css_green(_req: request::Request) -> response::Response {
+fn css_green(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}css/green.css");
     let css = std::fs::read(filename).unwrap(); //?;;
                                                 // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -148,7 +148,7 @@ fn css_green(_req: request::Request) -> response::Response {
 }
 
 // GET /css/purple.css
-fn css_purple(_req: request::Request) -> response::Response {
+fn css_purple(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}css/purple.css");
     let css = std::fs::read(filename).unwrap(); //?;;
                                                 // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -167,7 +167,7 @@ fn css_purple(_req: request::Request) -> response::Response {
 }
 
 // GET /scripts/script.js
-fn js_script(_req: request::Request) -> response::Response {
+fn js_script(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}scripts/script.js");
     let html = std::fs::read(filename).unwrap(); //?;;
                                                  // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -187,7 +187,7 @@ fn js_script(_req: request::Request) -> response::Response {
 }
 
 // GET /image/me.jpeg
-fn image_me(_req: request::Request) -> response::Response {
+fn image_me(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}images/me.jpeg");
     let html = std::fs::read(filename).unwrap(); //?;;
                                                  // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -206,7 +206,7 @@ fn image_me(_req: request::Request) -> response::Response {
 }
 
 // GET /image/404.jpeg
-fn image_404(_req: request::Request) -> response::Response {
+fn image_404(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}images/404.jpeg");
     let html = std::fs::read(filename).unwrap(); //?;;
                                                  // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
@@ -225,7 +225,7 @@ fn image_404(_req: request::Request) -> response::Response {
 }
 
 // GET /image/linkedin.jpeg
-fn image_linkedin(_req: request::Request) -> response::Response {
+fn image_linkedin(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}images/linkedin.jpeg");
     let html = std::fs::read(filename).unwrap(); //?;;
     let status_line = "HTTP/1.1 200 OK";
@@ -244,7 +244,7 @@ fn image_linkedin(_req: request::Request) -> response::Response {
 }
 
 // GET /image/linkedin.jpeg
-fn image_mail_sent(_req: request::Request) -> response::Response {
+fn image_mail_sent(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}images/mail_sent.jpeg");
     let html = std::fs::read(filename).unwrap(); //?;;
     let status_line = "HTTP/1.1 200 OK";
@@ -263,7 +263,7 @@ fn image_mail_sent(_req: request::Request) -> response::Response {
 }
 
 // GET <bad request>
-fn error_404(_req: request::Request) -> response::Response {
+fn error_404(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}html/404.html");
     let html = std::fs::read(filename).unwrap(); //?;;
     let status_line = "HTTP/1.1 200 OK";

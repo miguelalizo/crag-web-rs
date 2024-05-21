@@ -7,7 +7,7 @@ async fn test_index() -> Result<()> {
         .register_error_handler(Box::new(handler::default_error_404_handler))
         .register_handler(
             request::Request::GET("/foo".to_owned()),
-            Box::new(|_req| response::Response::Ok("Bar!".to_owned())),
+            Box::new(|_req| Ok(response::Response::Ok("Bar!".to_owned()))),
         )
         .register_handler(
             request::Request::GET(String::from("/hello")),
@@ -34,6 +34,6 @@ async fn test_index() -> Result<()> {
 }
 
 // get "/hello"
-fn hello_handler(_request: request::Request) -> response::Response {
-    response::Response::Ok("Hello, Crag-Web!".to_owned())
+fn hello_handler(_request: request::Request) -> anyhow::Result<response::Response> {
+    Ok(response::Response::Ok("Hello, Crag-Web!".to_owned()))
 }
