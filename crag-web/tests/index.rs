@@ -16,7 +16,7 @@ async fn test_index() -> Result<()> {
         .finalize(("127.0.0.1", 8010), 4)?;
 
     let _server_join = std::thread::spawn(move || {
-        server.run();
+        server.run().unwrap();
     });
 
     let r = reqwest::get("http://127.0.0.1:8010/bad").await?;

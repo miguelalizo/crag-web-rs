@@ -1,9 +1,10 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::ToSocketAddrs;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
+use tracing::error;
 
 use crate::handler;
 use crate::request;
@@ -64,27 +65,29 @@ impl Server {
             handlers: HashMap::new(),
         }
     }
-    pub fn run(&self) {
+    pub fn run(&self) -> Result<()> {
         for stream in self.tcp_listener.incoming() {
-            match stream {
-                Ok(stream) => {
-                    let handlers = self.handlers.clone();
+            let mut stream = stream?;
+            let handlers = self.handlers.clone();
 
-                    self.pool.execute(|| {
-                        handle_connection(handlers, stream);
-                    });
-                }
-                Err(e) => panic!("{} Error handling connection!", e),
-            }
+            // error boundary
+            // does trying to return 404 or 501 on error make sense when the error coming from
+            // handle_conn could be on stream.shutdown?
+            self.pool.execute(move || {
+                if let Err(e) = handle_connection(handlers, &mut stream) {
+                    error!("Error handling connection: {:?}", e);
+                };
+            });
         }
+        Ok(())
     }
 }
 
 fn handle_connection(
     handlers: Arc<HashMap<request::Request, handler::Handler>>,
-    mut stream: TcpStream,
-) {
-    let req = parse_request(&mut stream).expect("Error parsing request");
+    stream: &mut TcpStream,
+) -> Result<()> {
+    let req = parse_request(stream).map_err(|err| anyhow!("Error parsing request: {:?}", err))?;
     let hashed_req = match req {
         request::Request::GET(ref a) => request::Request::GET(a.clone()),
         request::Request::POST(ref a, _) => request::Request::POST(a.clone(), String::default()),
@@ -94,21 +97,22 @@ fn handle_connection(
     // build response
     let response = match handlers.get(&hashed_req) {
         Some(handler) => handler(req),
-        None => {
-            // TODO: Figure out better way to handle 404 not found
-            match handlers.get(&request::Request::UNIDENTIFIED) {
-                Some(handler) => handler(req),
-                None => handler::default_error_404_handler(req),
-            }
-        }
+        None => match handlers.get(&request::Request::UNIDENTIFIED) {
+            Some(handler) => handler(req),
+            None => handler::default_error_404_handler(req),
+        },
     };
 
     // write response into TcpStream
-    stream.write_all(&Vec::<u8>::from(response)).unwrap();
+    stream.write_all(&Vec::<u8>::from(response))?;
+
+    stream.shutdown(std::net::Shutdown::Both)?;
+
+    Ok(())
 }
 
 // TODO: Fix return type
-fn parse_request(stream: &mut TcpStream) -> Result<request::Request, std::io::Error> {
+fn parse_request(stream: &mut TcpStream) -> Result<request::Request> {
     // create buffer
     let mut request: Vec<String> = vec![];
     let mut buffer = BufReader::new(stream);
