@@ -1,4 +1,3 @@
-use anyhow;
 use crag_web::{request, response, server};
 
 // get "/hello"

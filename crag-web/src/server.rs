@@ -11,14 +11,16 @@ use crate::request;
 use crate::response;
 use crate::threadpool;
 
+type HandlerMap = HashMap<Option<request::Request>, handler::Handler>;
+
 pub struct Server {
     tcp_listener: TcpListener,
     pool: threadpool::ThreadPool,
-    handlers: Arc<HashMap<request::Request, handler::Handler>>,
+    handlers: Arc<HandlerMap>,
 }
 
 pub struct ServerBuilder {
-    handlers: HashMap<request::Request, handler::Handler>,
+    handlers: HandlerMap,
 }
 
 impl ServerBuilder {
@@ -29,13 +31,13 @@ impl ServerBuilder {
             .ok_or_else(|| anyhow::anyhow!("Unable to resolve address"))?;
 
         let tcp_listener = TcpListener::bind(socket_addr)?;
-
         let pool = threadpool::ThreadPool::build(pool_size)?;
+        let handlers = Arc::new(self.handlers);
 
         let server = Server {
             tcp_listener,
             pool,
-            handlers: Arc::new(self.handlers),
+            handlers,
         };
 
         Ok(server)
@@ -46,16 +48,18 @@ impl ServerBuilder {
         r: request::Request,
         handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
     ) -> Self {
-        self.handlers.insert(r, Box::new(handler));
+        // TODO: Communicate to user when existing key overwritten
+        self.handlers.insert(Some(r), Box::new(handler));
         self
     }
 
     pub fn register_error_handler(
-        self,
+        mut self,
         handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
     ) -> Self {
-        let request = request::Request::UNIDENTIFIED;
-        self.register_handler(request, handler)
+        // TODO: Communicate to user when existing key overwritten
+        self.handlers.insert(None, Box::new(handler));
+        self
     }
 }
 
@@ -84,30 +88,24 @@ impl Server {
     }
 }
 
-fn handle_connection<S>(
-    handlers: &HashMap<request::Request, handler::Handler>,
-    stream: &mut S,
-) -> Result<()>
+fn handle_connection<S>(handlers: &HandlerMap, stream: &mut S) -> Result<()>
 where
     S: Read + Write,
 {
-    let req = parse_request(stream).map_err(|err| anyhow!("Error parsing request: {:?}", err))?;
-    let req = match req {
-        request::Request::GET(ref a) => request::Request::GET(a.clone()),
-        request::Request::POST(ref a, _) => request::Request::POST(a.clone(), String::default()),
-        request::Request::UNIDENTIFIED => request::Request::UNIDENTIFIED,
-    };
+    let req =
+        read_parse_request(stream).map_err(|err| anyhow!("Error parsing request: {:?}", err))?;
 
     // build response
-    let response = match handlers.get(&req) {
+    let response = match handlers.get(&Some(req.clone())) {
         Some(handler) => handler(req),
-
-        None => match handlers.get(&request::Request::UNIDENTIFIED) {
-            Some(handler) => handler(req),
-            None => handler::default_error_404_handler(req),
-        },
+        None => {
+            if let Some(four_oh_four_handler) = handlers.get(&None) {
+                four_oh_four_handler(req)
+            } else {
+                handler::default_error_404_handler(req)
+            }
+        }
     };
-
     let response = response?;
 
     // write response into TcpStream
@@ -116,45 +114,61 @@ where
     Ok(())
 }
 
-// TODO: Fix return type
-fn parse_request(stream: &mut impl Read) -> Result<request::Request> {
+fn read_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     // create buffer
-    let mut request: Vec<String> = vec![];
     let mut buffer = BufReader::new(stream);
 
-    // Read the HTTP request headers until end of header
-    while request.is_empty() || request.last().insert(&String::default()).len() > 2 {
-        let mut next_line = String::new();
-        buffer.read_line(&mut next_line)?;
-        request.push(next_line);
-    }
-
-    // build request from header
-    let mut req = request::Request::build(request.first().unwrap_or(&"/".to_owned()).to_owned());
-
-    if let request::Request::POST(_, _) = req {
-        // Find the Content-Length header
-        let content_length = request
-            .iter()
-            // .lines()
-            .find(|line| line.starts_with("Content-Length:"))
-            .and_then(|line| {
-                line.trim()
-                    .split(':')
-                    .nth(1)
-                    .and_then(|value| value.trim().parse::<usize>().ok())
-            })
-            .unwrap_or(0);
-
-        // Parse the request body based on Content-Length
-        let mut body_buffer = vec![0; content_length];
-        buffer.read_exact(&mut body_buffer)?;
-
-        // Add body to request
-        req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default());
+    // get header lines
+    let lines = {
+        let mut lines: Vec<String> = vec![];
+        loop {
+            let mut next_line = String::new();
+            buffer.read_line(&mut next_line)?;
+            if next_line.is_empty() || next_line == "\r\n" || next_line == "\r" {
+                break lines;
+            }
+            lines.push(next_line);
+        }
     };
 
+    // Parse the request and content_length for body
+    let (mut req, content_length) = parse_request(&lines)?;
+
+    // Parse the request body based on Content-Length
+    let mut body_buffer = vec![0; content_length];
+    buffer.read_exact(&mut body_buffer)?;
+
+    // Add body to request
+    req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default());
+
     Ok(req)
+}
+
+fn parse_request(lines: &[String]) -> Result<(request::Request, usize)> {
+    // build request from header
+    let first_line = lines
+        .first()
+        .ok_or_else(|| anyhow!("No request line found"))?;
+    let req = request::Request::parse(first_line)?;
+    let content_length = match req {
+        request::Request::GET(_) => 0,
+        request::Request::POST(_, _) => {
+            lines
+                .iter()
+                // .lines()
+                .find(|line| line.starts_with("Content-Length:"))
+                .and_then(|line| {
+                    line.trim()
+                        .split(':')
+                        .nth(1)
+                        .and_then(|value| value.trim().parse::<usize>().ok())
+                })
+                .unwrap_or(0);
+            panic!("Need to read body according to content length but we are not doing that yet")
+        }
+    };
+
+    Ok((req, content_length))
 }
 
 #[cfg(test)]
