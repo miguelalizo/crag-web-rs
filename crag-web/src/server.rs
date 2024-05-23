@@ -11,20 +11,40 @@ use crate::request;
 use crate::response;
 use crate::threadpool;
 
-type HandlerMap = HashMap<Option<request::Request>, handler::Handler>;
+type HandlerMap = HashMap<request::Request, handler::Handler>;
+
+struct Handlers {
+    valid_handlers: HandlerMap,
+    error_handler: handler::Handler,
+}
+
+impl Handlers {
+    fn handle_error(&self, req: request::Request) -> Result<response::Response> {
+        (self.error_handler)(req)
+    }
+}
 
 pub struct Server {
     tcp_listener: TcpListener,
     pool: threadpool::ThreadPool,
-    handlers: Arc<HandlerMap>,
+    handlers: Arc<Handlers>,
 }
 
 pub struct ServerBuilder {
     handlers: HandlerMap,
+    error_handler: Option<handler::Handler>,
 }
 
 impl ServerBuilder {
+    /// Finalize the server builder and create a server instance
+    /// an error handler must always be defined or this will err.
     pub fn finalize(self, addr: impl ToSocketAddrs, pool_size: usize) -> Result<Server> {
+        // Check to see that there is an error_handler for 404 errors
+        let error_handler = match self.error_handler {
+            Some(handler) => handler,
+            None => anyhow::bail!("Error: No error handler defined"),
+        };
+
         let socket_addr = addr
             .to_socket_addrs()?
             .next()
@@ -32,7 +52,10 @@ impl ServerBuilder {
 
         let tcp_listener = TcpListener::bind(socket_addr)?;
         let pool = threadpool::ThreadPool::build(pool_size)?;
-        let handlers = Arc::new(self.handlers);
+        let handlers = Arc::new(Handlers {
+            valid_handlers: self.handlers,
+            error_handler: error_handler,
+        });
 
         let server = Server {
             tcp_listener,
@@ -47,19 +70,23 @@ impl ServerBuilder {
         mut self,
         r: request::Request,
         handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
-    ) -> Self {
-        // TODO: Communicate to user when existing key overwritten
-        self.handlers.insert(Some(r), Box::new(handler));
-        self
+    ) -> Result<Self> {
+        if let Some(_) = self.handlers.get(&r) {
+            anyhow::bail!("Handler already registered for {r:?}");
+        }
+        self.handlers.insert(r, Box::new(handler));
+        Ok(self)
     }
 
     pub fn register_error_handler(
         mut self,
         handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
-    ) -> Self {
-        // TODO: Communicate to user when existing key overwritten
-        self.handlers.insert(None, Box::new(handler));
-        self
+    ) -> Result<Self> {
+        if let Some(_) = self.error_handler {
+            anyhow::bail!("Error handler already registered");
+        }
+        self.error_handler = Some(Box::new(handler));
+        Ok(self)
     }
 }
 
@@ -67,6 +94,7 @@ impl Server {
     pub fn build() -> ServerBuilder {
         ServerBuilder {
             handlers: HashMap::new(),
+            error_handler: None,
         }
     }
     pub fn run(&self) -> Result<()> {
@@ -88,23 +116,17 @@ impl Server {
     }
 }
 
-fn handle_connection<S>(handlers: &HandlerMap, stream: &mut S) -> Result<()>
+fn handle_connection<S>(handlers: &Handlers, stream: &mut S) -> Result<()>
 where
     S: Read + Write,
 {
-    let req =
-        read_parse_request(stream).map_err(|err| anyhow!("Error parsing request: {:?}", err))?;
+    let req = read_and_parse_request(stream)
+        .map_err(|err| anyhow!("Error parsing request: {:?}", err))?;
 
     // build response
-    let response = match handlers.get(&Some(req.clone())) {
+    let response = match handlers.valid_handlers.get(&req) {
         Some(handler) => handler(req),
-        None => {
-            if let Some(four_oh_four_handler) = handlers.get(&None) {
-                four_oh_four_handler(req)
-            } else {
-                handler::default_error_404_handler(req)
-            }
-        }
+        None => handlers.handle_error(req),
     };
     let response = response?;
 
@@ -114,7 +136,7 @@ where
     Ok(())
 }
 
-fn read_parse_request(stream: &mut impl Read) -> Result<request::Request> {
+fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     // create buffer
     let mut buffer = BufReader::new(stream);
 
@@ -185,19 +207,32 @@ mod test {
     }
 
     #[test]
-    fn test_builder_pattern() {
+    fn test_builder_pattern() -> Result<()> {
         // Create server
         let _builder = Server::build()
-            .register_error_handler(Box::new(handler::default_error_404_handler))
+            .register_error_handler(Box::new(handler::default_error_404_handler))?
             .register_handler(
                 request::Request::GET("/".to_owned()),
                 Box::new(|_req| Ok(response::Response::Ok("Hello, Crag-Web!".to_owned()))),
-            )
+            )?
             .register_handler(
                 request::Request::GET("/hello".to_owned()),
                 Box::new(hello_handler),
-            )
+            )?
             .finalize(("127.0.0.1", 8010), 4)
             .unwrap();
+        Ok(())
+    }
+
+    #[test]
+    fn test_no_err_handler_fails() -> Result<()> {
+        let server = Server::build()
+            .register_handler(
+                request::Request::GET("/".to_owned()),
+                Box::new(|_req| Ok(response::Response::Ok("Hello, Crag-Web!".to_owned()))),
+            )?
+            .finalize(("127.0.0.1", 8010), 1);
+        assert!(server.is_err());
+        Ok(())
     }
 }
