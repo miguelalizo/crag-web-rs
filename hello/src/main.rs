@@ -12,11 +12,11 @@ fn error_404_handler(_request: request::Request) -> anyhow::Result<response::Res
 
 fn main() -> anyhow::Result<()> {
     let app = server::Server::build()
-        .register_error_handler(Box::new(error_404_handler))
+        .register_error_handler(Box::new(error_404_handler))?
         .register_handler(
             request::Request::GET(String::from("/hello")),
             Box::new(hello_handler),
-        )
+        )?
         .finalize(("127.0.0.1", 8010), 4)
         .unwrap();
 
