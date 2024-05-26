@@ -46,6 +46,8 @@ impl Request {
     pub fn add_body(&mut self, body: String) -> Result<(), anyhow::Error> {
         match self {
             Request::POST(_, ref mut b) => *b = body,
+            // TODO: Figure out if need to bail here?
+            // is it valid for get reqs to ever have a body?
             _ => (),
         };
         Ok(())

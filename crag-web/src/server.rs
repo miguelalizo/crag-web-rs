@@ -159,10 +159,10 @@ fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     // Parse the request body based on Content-Length
     let mut body_buffer = vec![0; content_length];
     buffer.read_exact(&mut body_buffer)?;
-
     // Add body to request
-    req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default())?;
-
+    if content_length > 0 {
+        req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default())?;
+    }
     Ok(req)
 }
 
