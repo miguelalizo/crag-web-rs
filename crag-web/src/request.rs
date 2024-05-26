@@ -1,3 +1,5 @@
+// TODO: Add enumerated error values to not test based on strings
+
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum Request {
     GET(String),
@@ -10,12 +12,24 @@ impl Request {
         println!("{request_line}");
         let mut parts = request_line.split_whitespace();
 
-        let method = parts.next().unwrap_or("GET");
-        let uri = parts.next().unwrap_or("not_implemented");
-        let protocol = parts.next().unwrap_or("HTTP/1.1");
+        let method = parts
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("No method found"))?;
+
+        let uri = parts
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("No URI found"))?;
+
+        let protocol = parts
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("No protocol found"))?;
+
+        if parts.next().is_some() {
+            anyhow::bail!("Invalid request line: extra values after parts");
+        }
 
         if protocol != "HTTP/1.1" {
-            panic!("Server can only work with HTTP/1.1");
+            anyhow::bail!("Server can only work with HTTP/1.1");
         }
 
         let req = match method {
@@ -26,6 +40,7 @@ impl Request {
 
         Ok(req)
     }
+
     pub fn add_body(&mut self, body: String) {
         if let Request::POST(_, ref mut b) = self {
             *b = body;
@@ -47,8 +62,75 @@ mod tests {
     }
 
     #[test]
+    fn test_missing_verb() {
+        let req = Request::parse(&String::from(""));
+        assert!(req.is_err(), "Returned request is: {req:?}");
+        assert!(req.err().unwrap().to_string().contains("No method found"));
+    }
+
+    #[test]
     fn test_request_parser_bad_verbs() {
         let req = Request::parse(&String::from("FOO / HTTP/1.1"));
         assert!(req.is_err(), "Returned request is: {req:?}");
+        assert!(req
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Unrecognized method"));
+    }
+
+    #[test]
+    fn test_missing_uri() {
+        let req = Request::parse(&String::from("GET"));
+        assert!(req.is_err(), "Returned request is: {req:?}");
+        assert!(req.err().unwrap().to_string().contains("No URI found"));
+    }
+
+    #[test]
+    fn test_missing_protocol() {
+        let req = Request::parse(&String::from("GET /"));
+        assert!(req.is_err(), "Returned request is: {req:?}");
+        assert!(req.err().unwrap().to_string().contains("No protocol found"));
+    }
+
+    #[test]
+    fn test_bad_protocol_name() {
+        let req = Request::parse(&String::from("GET / HTTP/1.0"));
+        assert!(req.is_err(), "Returned request is: {req:?}");
+        assert!(req
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Server can only work with HTTP/1.1"));
+    }
+
+    #[test]
+    fn test_good_paths() {
+        let req = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
+        assert_eq!(req, Request::GET(String::from("/")));
+
+        let req = Request::parse(&String::from("GET /foo HTTP/1.1")).unwrap();
+        assert_eq!(req, Request::GET(String::from("/foo")));
+
+        let req = Request::parse(&String::from("GET /foo/bar HTTP/1.1")).unwrap();
+        assert_eq!(req, Request::GET(String::from("/foo/bar")));
+    }
+
+    #[test]
+    fn test_bad_missing_path() {
+        let req = Request::parse(&String::from("GET"));
+        assert!(req.is_err(), "Returned request is: {req:?}");
+        assert!(req.err().unwrap().to_string().contains("No URI found"));
+    }
+
+    #[test]
+    fn test_extra_content_in_request() {
+        let req = Request::parse(&String::from("GET / HTTP/1.1 foo"));
+        assert!(req.is_err(), "Returned request is: {req:?}");
+        assert!(req
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Invalid request line: extra values after parts"));
     }
 }
