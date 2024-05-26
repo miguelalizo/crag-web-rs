@@ -231,7 +231,7 @@ mod test {
                 request::Request::GET("/".to_owned()),
                 Box::new(|_req| Ok(response::Response::Ok("Hello, Crag-Web!".to_owned()))),
             )?
-            .finalize(("127.0.0.1", 8010), 1);
+            .finalize(("127.0.0.1", 8011), 1);
         assert!(server.is_err());
         Ok(())
     }
