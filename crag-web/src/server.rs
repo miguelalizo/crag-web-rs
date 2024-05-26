@@ -161,7 +161,7 @@ fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     buffer.read_exact(&mut body_buffer)?;
 
     // Add body to request
-    req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default());
+    req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default())?;
 
     Ok(req)
 }

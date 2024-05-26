@@ -1,5 +1,7 @@
 // TODO: Add enumerated error values to not test based on strings
 
+use anyhow::{bail, Result};
+
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum Request {
     GET(String),
@@ -8,7 +10,7 @@ pub enum Request {
 
 impl Request {
     // should this be from implementation instead?
-    pub fn parse(request_line: &String) -> anyhow::Result<Request> {
+    pub fn parse(request_line: &String) -> Result<Request> {
         println!("{request_line}");
         let mut parts = request_line.split_whitespace();
 
@@ -25,26 +27,28 @@ impl Request {
             .ok_or_else(|| anyhow::anyhow!("No protocol found"))?;
 
         if parts.next().is_some() {
-            anyhow::bail!("Invalid request line: extra values after parts");
+            bail!("Invalid request line: extra values after parts");
         }
 
         if protocol != "HTTP/1.1" {
-            anyhow::bail!("Server can only work with HTTP/1.1");
+            bail!("Server can only work with HTTP/1.1");
         }
 
         let req = match method {
             "GET" => Request::GET(String::from(uri)),
             "POST" => Request::POST(String::from(uri), String::default()),
-            _ => anyhow::bail!("Unrecognized method: {method}"),
+            _ => bail!("Unrecognized method: {method}"),
         };
 
         Ok(req)
     }
 
-    pub fn add_body(&mut self, body: String) {
-        if let Request::POST(_, ref mut b) = self {
-            *b = body;
+    pub fn add_body(&mut self, body: String) -> Result<(), anyhow::Error> {
+        match self {
+            Request::POST(_, ref mut b) => *b = body,
+            _ => (),
         };
+        Ok(())
     }
 }
 
