@@ -45,7 +45,13 @@ impl Request {
 
     pub fn add_body(&mut self, body: String) -> Result<(), anyhow::Error> {
         match self {
-            Request::POST(_, ref mut b) => *b = body,
+            Request::POST(_, ref mut b) => {
+                if b.is_empty() {
+                    *b = body;
+                } else {
+                    bail!("Body already exists in request")
+                }
+            }
             // TODO: Figure out if need to bail here?
             // is it valid for get reqs to ever have a body?
             _ => (),
@@ -138,5 +144,28 @@ mod tests {
             .unwrap()
             .to_string()
             .contains("Invalid request line: extra values after parts"));
+    }
+
+    #[test]
+    fn test_add_body() {
+        let mut req = Request::POST(String::from("/"), String::default());
+        req.add_body(String::from("Hello, World!")).unwrap();
+        assert_eq!(
+            req,
+            Request::POST(String::from("/"), String::from("Hello, World!"))
+        );
+    }
+
+    #[test]
+    fn test_add_body_twice() {
+        let mut req = Request::POST(String::from("/"), String::default());
+        req.add_body(String::from("Hello, World!")).unwrap();
+        let res = req.add_body(String::from("Hello, World!"));
+        assert!(res.is_err(), "Returned request is: {res:?}");
+        assert!(res
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Body already exists in request"));
     }
 }
