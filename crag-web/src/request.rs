@@ -10,8 +10,10 @@ pub enum Request {
 
 impl Request {
     // should this be from implementation instead?
-    pub fn parse(request_line: &str) -> Result<Request> {
+    pub fn parse(request_line: impl AsRef<str>) -> Result<Request> {
+        let request_line = request_line.as_ref();
         println!("{request_line}");
+
         let mut parts = request_line.split_whitespace();
 
         let method = parts
