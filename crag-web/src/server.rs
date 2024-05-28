@@ -54,7 +54,7 @@ impl ServerBuilder {
         let pool = threadpool::ThreadPool::build(pool_size)?;
         let handlers = Arc::new(Handlers {
             valid_handlers: self.handlers,
-            error_handler: error_handler,
+            error_handler,
         });
 
         let server = Server {
@@ -71,7 +71,7 @@ impl ServerBuilder {
         r: request::Request,
         handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
     ) -> Result<Self> {
-        if let Some(_) = self.handlers.get(&r) {
+        if self.handlers.contains_key(&r) {
             anyhow::bail!("Handler already registered for {r:?}");
         }
         self.handlers.insert(r, Box::new(handler));
@@ -82,7 +82,7 @@ impl ServerBuilder {
         mut self,
         handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
     ) -> Result<Self> {
-        if let Some(_) = self.error_handler {
+        if self.error_handler.is_some() {
             anyhow::bail!("Error handler already registered");
         }
         self.error_handler = Some(Box::new(handler));
@@ -154,7 +154,7 @@ fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     };
 
     // Parse the request and content_length for body
-    let (mut req, content_length) = parse_request(&lines)?;
+    let (mut req, content_length) = parse_request(lines)?;
 
     // Parse the request body based on Content-Length
     let mut body_buffer = vec![0; content_length];
@@ -171,21 +171,25 @@ fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     Ok(req)
 }
 
-fn parse_request(lines: &[String]) -> Result<(request::Request, usize)> {
+fn parse_request<IT, S>(lines: IT) -> Result<(request::Request, usize)>
+where
+    IT: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut lines = lines.into_iter();
     // build request from header
     let first_line = lines
-        .first()
+        .next()
         .ok_or_else(|| anyhow!("No request line found"))?;
-    let req = request::Request::parse(first_line)?;
+    let req = request::Request::parse(first_line.as_ref())?;
     let content_length = match req {
         request::Request::GET(_) => 0,
         request::Request::POST(_, _) => {
             lines
-                .iter()
-                // .lines()
-                .find(|line| line.starts_with("Content-Length:"))
+                .find(|line| line.as_ref().starts_with("Content-Length:"))
                 .and_then(|line| {
-                    line.trim()
+                    line.as_ref()
+                        .trim()
                         .split(':')
                         .nth(1)
                         .and_then(|value| value.trim().parse::<usize>().ok())

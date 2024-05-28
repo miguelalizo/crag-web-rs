@@ -10,7 +10,7 @@ pub enum Request {
 
 impl Request {
     // should this be from implementation instead?
-    pub fn parse(request_line: &String) -> Result<Request> {
+    pub fn parse(request_line: &str) -> Result<Request> {
         println!("{request_line}");
         let mut parts = request_line.split_whitespace();
 
@@ -44,17 +44,14 @@ impl Request {
     }
 
     pub fn add_body(&mut self, body: String) -> Result<(), anyhow::Error> {
-        match self {
-            Request::POST(_, ref mut b) => {
-                if b.is_empty() {
-                    *b = body;
-                } else {
-                    bail!("Body already exists in request")
-                }
+        if let &mut Request::POST(_, ref mut b) = self {
+            if b.is_empty() {
+                *b = body;
+            } else {
+                bail!("Body already exists in request")
             }
             // TODO: Figure out if need to bail here?
             // is it valid for get reqs to ever have a body?
-            _ => (),
         };
         Ok(())
     }
@@ -150,6 +147,7 @@ mod tests {
     fn test_add_body() {
         let mut req = Request::POST(String::from("/"), String::default());
         req.add_body(String::from("Hello, World!")).unwrap();
+
         assert_eq!(
             req,
             Request::POST(String::from("/"), String::from("Hello, World!"))
