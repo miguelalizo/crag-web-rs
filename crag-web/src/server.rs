@@ -182,6 +182,8 @@ where
         .next()
         .ok_or_else(|| anyhow!("No request line found"))?;
     let req = request::Request::parse(first_line.as_ref())?;
+
+    // parse content length if POST else 0
     let content_length = match req {
         request::Request::GET(_) => 0,
         request::Request::POST(_, _) => {
@@ -212,7 +214,10 @@ mod test {
 
     // get "/hello"
     fn hello_handler(_request: request::Request) -> Result<response::Response> {
-        Ok(response::Response::Ok("Hello, Crag-Web!".to_owned()))
+        Ok(response::Response::Ok(
+            "Hello, Crag-Web!".as_bytes().to_vec(),
+            response::ContentType::HTML,
+        ))
     }
 
     #[test]
@@ -222,7 +227,12 @@ mod test {
             .register_error_handler(Box::new(handler::default_error_404_handler))?
             .register_handler(
                 request::Request::GET("/".to_owned()),
-                Box::new(|_req| Ok(response::Response::Ok("Hello, Crag-Web!".to_owned()))),
+                Box::new(|_req| {
+                    Ok(response::Response::Ok(
+                        "Hello, Crag-Web!".as_bytes().to_vec(),
+                        response::ContentType::HTML,
+                    ))
+                }),
             )?
             .register_handler(
                 request::Request::GET("/hello".to_owned()),
@@ -238,10 +248,34 @@ mod test {
         let server = Server::build()
             .register_handler(
                 request::Request::GET("/".to_owned()),
-                Box::new(|_req| Ok(response::Response::Ok("Hello, Crag-Web!".to_owned()))),
+                Box::new(|_req| {
+                    Ok(response::Response::Ok(
+                        "Hello, Crag-Web!".as_bytes().to_vec(),
+                        response::ContentType::HTML,
+                    ))
+                }),
             )?
             .finalize(("127.0.0.1", 8011), 1);
         assert!(server.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_request() -> Result<()> {
+        let lines = &["GET / HTTP/1.1"];
+        let (req, content_length) = parse_request(lines.iter())?;
+        assert_eq!(req, request::Request::GET("/".to_owned()));
+        assert_eq!(content_length, 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_request_empty() -> Result<()> {
+        let empty: &[&str; 0] = &[];
+        let res = parse_request(empty.iter());
+        assert!(res.is_err());
+        assert_eq!(res.err().unwrap().to_string(), "No request line found");
         Ok(())
     }
 }

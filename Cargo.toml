@@ -1,4 +1,4 @@
 [workspace]
-members = ["crag-web", "hello"]
+members = ["crag-web", "hello", "portfolio"]
 resolver = "2"
-exclude = ["portfolio"]
+exclude = []
