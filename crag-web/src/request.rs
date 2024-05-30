@@ -54,7 +54,7 @@ impl Request {
             }
             // TODO: Figure out if need to bail here?
             // is it valid for get reqs to ever have a body?
-        };
+        }
         Ok(())
     }
 }
