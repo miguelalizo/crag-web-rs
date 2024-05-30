@@ -10,21 +10,15 @@ const STATIC_FILES: &str = "./static/";
 // GET /not_found
 fn not_found(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}html/404.html");
-    let html = std::fs::read_to_string(filename).unwrap();
-    Ok(response::Response::Ok(
-        html.as_bytes().to_vec(),
-        response::ContentType::HTML,
-    ))
+    let html = std::fs::read(filename).unwrap();
+    Ok(response::Response::Ok(html, response::ContentType::HTML))
 }
 
 // GET /index
 fn index(_req: request::Request) -> anyhow::Result<response::Response> {
     let filename = format!("{STATIC_FILES}html/index.html");
-    let html = std::fs::read_to_string(filename).unwrap();
-    Ok(response::Response::Ok(
-        html.as_bytes().to_vec(),
-        response::ContentType::HTML,
-    ))
+    let html = std::fs::read(filename).unwrap();
+    Ok(response::Response::Ok(html, response::ContentType::HTML))
 }
 
 fn send_email() {
@@ -64,12 +58,8 @@ fn contact(req: request::Request) -> anyhow::Result<response::Response> {
         }
         _ => format!("{STATIC_FILES}html/contact.html"),
     };
-    let html = std::fs::read_to_string(filename).unwrap(); //?;;
-                                                           // let html_contents = std::fs::read_to_string(filename).unwrap();//?;
-    Ok(response::Response::Ok(
-        html.as_bytes().to_vec(),
-        response::ContentType::HTML,
-    ))
+    let html = std::fs::read(filename).unwrap();
+    Ok(response::Response::Ok(html, response::ContentType::HTML))
 }
 
 // GET /css/default.css

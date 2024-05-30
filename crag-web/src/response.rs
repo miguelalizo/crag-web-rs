@@ -1,12 +1,8 @@
-use lazy_static::lazy_static;
-use std::collections;
-
-pub enum Response<T: IntoBytes> {
-    Ok(T, ContentType),
-    NotFound(T),
+pub enum Response {
+    Ok(Vec<u8>, ContentType),
+    NotFound(Vec<u8>),
 }
 
-#[derive(Hash, Eq, PartialEq)]
 pub enum ContentType {
     HTML,
     CSS,
@@ -14,59 +10,27 @@ pub enum ContentType {
     IMAGE,
 }
 
-pub trait IntoBytes {
-    fn into_bytes(self) -> Vec<u8>;
-}
-
-impl IntoBytes for String {
-    fn into_bytes(self) -> Vec<u8> {
-        self.into_bytes()
+impl From<ContentType> for &'static str {
+    fn from(content_type: ContentType) -> &'static str {
+        match content_type {
+            ContentType::HTML => "Content-Type: text/html",
+            ContentType::CSS => "Content-Type: text/css",
+            ContentType::JS => "Content-Type: application/javascript",
+            ContentType::IMAGE => "Content-Type: image/jpeg",
+        }
     }
 }
 
-impl IntoBytes for &str {
-    fn into_bytes(self) -> Vec<u8> {
-        self.as_bytes().to_vec()
-    }
-}
-
-impl IntoBytes for Vec<u8> {
-    fn into_bytes(self) -> Vec<u8> {
-        self
-    }
-}
-
-lazy_static! {
-    static ref CONTENT_TYPE: collections::HashMap<ContentType, &'static str> = {
-        let mut map = collections::HashMap::new();
-        map.insert(ContentType::HTML, "Content-Type: text/html");
-        map.insert(ContentType::CSS, "Content-Type: text/css");
-        map.insert(ContentType::JS, "Content-Type: application/javascript");
-        map.insert(ContentType::IMAGE, "Content-Type: image/jpeg");
-        map
-    };
-}
-// const HTML_TYPE: &str = "Content-Type: text/html";
-
-impl<T: IntoBytes> From<Response<T>> for Vec<u8> {
-    fn from(res: Response<T>) -> Vec<u8> {
+impl From<Response> for Vec<u8> {
+    fn from(res: Response) -> Vec<u8> {
         match res {
             Response::Ok(body, content_type) => {
                 const STATUS_LINE: &str = "HTTP/1.0 200 OK";
-                format_response(
-                    STATUS_LINE,
-                    CONTENT_TYPE.get(&content_type).unwrap(),
-                    body.into_bytes(),
-                )
+                format_response(STATUS_LINE, content_type.into(), body)
             }
             Response::NotFound(body) => {
                 const STATUS_LINE: &str = "HTTP/1.0 404 Not Found";
-                // const BODY: &str = include_str!("../static/html/404.html");
-                format_response(
-                    STATUS_LINE,
-                    CONTENT_TYPE.get(&ContentType::HTML).unwrap(),
-                    body.into_bytes(),
-                )
+                format_response(STATUS_LINE, ContentType::HTML.into(), body)
             }
         }
     }
@@ -83,4 +47,81 @@ fn format_response(status_line: &str, html_type: &str, body: Vec<u8>) -> Vec<u8>
 
     response.extend(body);
     response
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_from_html_response() {
+        let body = vec![1, 2, 3];
+        let response = Response::Ok(body.clone(), ContentType::HTML);
+        let expected = format!(
+            "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: {len}\r\n\r\n",
+            len = body.len()
+        )
+        .into_bytes();
+        let mut expected = expected;
+        expected.extend(&body);
+        assert_eq!(Vec::<u8>::from(response), expected);
+
+        let response = Response::NotFound(body.clone());
+        let expected = format!(
+            "HTTP/1.0 404 Not Found\r\nContent-Type: text/html\r\nContent-Length: {len}\r\n\r\n",
+            len = body.len()
+        )
+        .into_bytes();
+        let mut expected = expected;
+        expected.extend(body);
+        assert_eq!(Vec::<u8>::from(response), expected);
+    }
+
+    #[test]
+    fn test_from_css_response() {
+        let body = vec![1, 2, 3];
+        let response = Response::Ok(body.clone(), ContentType::CSS);
+
+        let expected = format!(
+            "HTTP/1.0 200 OK\r\nContent-Type: text/css\r\nContent-Length: {len}\r\n\r\n",
+            len = body.len()
+        )
+        .into_bytes();
+        let mut expected = expected;
+        expected.extend(&body);
+
+        assert_eq!(Vec::<u8>::from(response), expected);
+    }
+
+    #[test]
+    fn test_from_js_response() {
+        let body = vec![1, 2, 3];
+        let response = Response::Ok(body.clone(), ContentType::JS);
+
+        let expected = format!(
+            "HTTP/1.0 200 OK\r\nContent-Type: application/javascript\r\nContent-Length: {len}\r\n\r\n",
+            len = body.len()
+        )
+        .into_bytes();
+        let mut expected = expected;
+        expected.extend(&body);
+
+        assert_eq!(Vec::<u8>::from(response), expected);
+    }
+
+    #[test]
+    fn test_from_image_response() {
+        let body = vec![1, 2, 3];
+        let response = Response::Ok(body.clone(), ContentType::IMAGE);
+
+        let expected = format!(
+            "HTTP/1.0 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: {len}\r\n\r\n",
+            len = body.len()
+        )
+        .into_bytes();
+        let mut expected = expected;
+        expected.extend(&body);
+
+        assert_eq!(Vec::<u8>::from(response), expected);
+    }
 }
