@@ -104,7 +104,6 @@ impl Server {
 
             // error boundary
             // does trying to return 404 or 501 on error make sense when the error coming from
-            // handle_conn could be on stream.shutdown?
             self.pool.execute(move || {
                 if let Err(e) = handle_connection(&handlers, &mut stream) {
                     error!("Error handling connection: {:?}", e);
