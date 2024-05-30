@@ -11,16 +11,16 @@ use crate::request;
 use crate::response;
 use crate::threadpool;
 
-type HandlerMap = HashMap<request::Request, handler::Handler>;
+type HandlerMap = HashMap<request::Request, handler::BoxedHandler>;
 
 struct Handlers {
     valid_handlers: HandlerMap,
-    error_handler: handler::Handler,
+    error_handler: handler::BoxedHandler,
 }
 
 impl Handlers {
     fn handle_error(&self, req: request::Request) -> Result<response::Response> {
-        (self.error_handler)(req)
+        self.error_handler.handle(req)
     }
 }
 
@@ -32,7 +32,7 @@ pub struct Server {
 
 pub struct ServerBuilder {
     handlers: HandlerMap,
-    error_handler: Option<handler::Handler>,
+    error_handler: Option<handler::BoxedHandler>,
 }
 
 impl ServerBuilder {
@@ -69,7 +69,7 @@ impl ServerBuilder {
     pub fn register_handler(
         mut self,
         r: request::Request,
-        handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
+        handler: impl handler::Handler + Send + Sync + 'static,
     ) -> Result<Self> {
         if self.handlers.contains_key(&r) {
             anyhow::bail!("Handler already registered for {r:?}");
@@ -80,7 +80,7 @@ impl ServerBuilder {
 
     pub fn register_error_handler(
         mut self,
-        handler: impl Fn(request::Request) -> Result<response::Response> + Send + Sync + 'static,
+        handler: impl handler::Handler + Send + Sync + 'static,
     ) -> Result<Self> {
         if self.error_handler.is_some() {
             anyhow::bail!("Error handler already registered");
@@ -125,7 +125,7 @@ where
 
     // build response
     let response = match handlers.valid_handlers.get(&req) {
-        Some(handler) => handler(req),
+        Some(handler) => handler.handle(req),
         None => handlers.handle_error(req),
     };
     let response = response?;
