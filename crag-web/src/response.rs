@@ -13,10 +13,10 @@ pub enum ContentType {
 impl From<ContentType> for &'static str {
     fn from(content_type: ContentType) -> &'static str {
         match content_type {
-            ContentType::HTML => "Content-Type: text/html",
-            ContentType::CSS => "Content-Type: text/css",
-            ContentType::JS => "Content-Type: application/javascript",
-            ContentType::IMAGE => "Content-Type: image/jpeg",
+            ContentType::HTML => "text/html",
+            ContentType::CSS => "text/css",
+            ContentType::JS => "application/javascript",
+            ContentType::IMAGE => "image/jpeg",
         }
     }
 }
@@ -38,7 +38,7 @@ impl From<Response> for Vec<u8> {
 
 fn format_response(status_line: &str, html_type: &str, body: Vec<u8>) -> Vec<u8> {
     let mut response = format!(
-        "{status_line}\r\n{html_type}\r\nContent-Length: {len}\r\n\r\n",
+        "{status_line}\r\nContent-Type: {html_type}\r\nContent-Length: {len}\r\n\r\n",
         status_line = status_line,
         html_type = html_type,
         len = body.len(),
@@ -54,7 +54,24 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_from_html_response() {
+    fn test_format_response() {
+        let status_line = "status";
+        let html_type = "content";
+        let body = vec![1, 2, 3];
+        let mut expected = format!(
+            "{status_line}\r\nContent-Type: {html_type}\r\nContent-Length: {len}\r\n\r\n",
+            status_line = status_line,
+            html_type = html_type,
+            len = body.len(),
+        )
+        .into_bytes();
+        expected.extend(body.clone());
+
+        assert_eq!(expected, format_response(status_line, html_type, body));
+    }
+
+    #[test]
+    fn test_bytes_from_html_response() {
         let body = vec![1, 2, 3];
         let response = Response::Ok(body.clone(), ContentType::HTML);
         let expected = format!(
@@ -78,7 +95,7 @@ mod test {
     }
 
     #[test]
-    fn test_from_css_response() {
+    fn test_bytes_from_css_response() {
         let body = vec![1, 2, 3];
         let response = Response::Ok(body.clone(), ContentType::CSS);
 
@@ -94,7 +111,7 @@ mod test {
     }
 
     #[test]
-    fn test_from_js_response() {
+    fn test_bytes_from_js_response() {
         let body = vec![1, 2, 3];
         let response = Response::Ok(body.clone(), ContentType::JS);
 
@@ -110,7 +127,7 @@ mod test {
     }
 
     #[test]
-    fn test_from_image_response() {
+    fn test_bytes_from_image_response() {
         let body = vec![1, 2, 3];
         let response = Response::Ok(body.clone(), ContentType::IMAGE);
 
@@ -123,5 +140,29 @@ mod test {
         expected.extend(&body);
 
         assert_eq!(Vec::<u8>::from(response), expected);
+    }
+
+    #[test]
+    fn test_str_from_html() {
+        let content_type: &str = ContentType::HTML.into();
+        assert_eq!("text/html", content_type);
+    }
+
+    #[test]
+    fn test_str_from_js() {
+        let content_type: &str = ContentType::JS.into();
+        assert_eq!("application/javascript", content_type);
+    }
+
+    #[test]
+    fn test_str_from_css() {
+        let content_type: &str = ContentType::CSS.into();
+        assert_eq!("text/css", content_type);
+    }
+
+    #[test]
+    fn test_str_from_image() {
+        let content_type: &str = ContentType::IMAGE.into();
+        assert_eq!("image/jpeg", content_type);
     }
 }
