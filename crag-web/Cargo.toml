@@ -11,7 +11,5 @@ tracing = "0.1.40"
 
 [dev-dependencies]
 anyhow = "1.0.83"
-features = "0.10.0"
-full = "0.1.0"
 reqwest = "0.12.4"
 tokio = { version = "1.37.0", features = ["full"] }
