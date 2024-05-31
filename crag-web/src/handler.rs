@@ -25,19 +25,18 @@ pub fn default_error_404_handler(_request: Request) -> anyhow::Result<response::
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
-    fn test_default_error_handler() -> anyhow::Result<()> {
-        let res = default_error_404_handler(Request::GET("foo".to_string()));
-        let bytes_404: Vec<u8> = include_bytes!("../static/html/404.html").into();
+    fn test_default_error_404_handler() {
+        let response = default_error_404_handler(Request::GET(String::from("/")));
+        let expected_body: Vec<u8> = include_bytes!("../static/html/404.html").into();
 
-        assert!(matches!(res, Ok(response::Response::NotFound(_))));
+        assert!(matches!(response, Ok(response::Response::NotFound(_))));
 
-        if let response::Response::NotFound(body) = res.unwrap() {
-            assert_eq!(body, bytes_404);
+        if let response::Response::NotFound(body) = response.unwrap() {
+            assert_eq!(body, expected_body);
         }
-        Ok(())
     }
 }
