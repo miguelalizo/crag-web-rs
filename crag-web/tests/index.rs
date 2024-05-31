@@ -9,7 +9,7 @@ async fn test_index() -> Result<()> {
             request::Request::GET("/foo".to_owned()),
             Box::new(|_req| {
                 Ok(response::Response::Ok(
-                    "Bar!".to_owned().into(),
+                    "Bar!".into(),
                     response::ContentType::HTML,
                 ))
             }),
@@ -41,7 +41,7 @@ async fn test_index() -> Result<()> {
 // get "/hello"
 fn hello_handler(_request: request::Request) -> anyhow::Result<response::Response> {
     Ok(response::Response::Ok(
-        "Hello, Crag-Web!".to_owned().into(),
+        "Hello, Crag-Web!".into(),
         response::ContentType::HTML,
     ))
 }

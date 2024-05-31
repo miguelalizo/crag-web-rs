@@ -20,6 +20,6 @@ pub type BoxedHandler = Box<dyn Handler + Send + Sync + 'static>;
 /// Default handler for 404 errors
 pub fn default_error_404_handler(_request: Request) -> anyhow::Result<response::Response> {
     Ok(response::Response::NotFound(
-        include_bytes!("../static/html/404.html").to_owned().into(),
+        include_bytes!("../static/html/404.html").into(),
     ))
 }

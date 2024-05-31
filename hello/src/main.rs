@@ -3,16 +3,14 @@ use crag_web::{request, response, server};
 // get "/hello"
 fn hello_handler(_request: request::Request) -> anyhow::Result<response::Response> {
     Ok(response::Response::Ok(
-        "Hello, Crag-Web!".to_owned().into(),
+        "Hello, Crag-Web!".into(),
         response::ContentType::HTML,
     ))
 }
 
 // get <bad request>
 fn error_404_handler(_request: request::Request) -> anyhow::Result<response::Response> {
-    Ok(response::Response::NotFound(
-        ("404 Not Found").to_owned().into_bytes(),
-    ))
+    Ok(response::Response::NotFound(("404 Not Found").into()))
 }
 
 fn main() -> anyhow::Result<()> {
