@@ -160,11 +160,10 @@ fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     buffer.read_exact(&mut body_buffer)?;
 
     // Add body to request if POST
-    match req {
-        request::Request::POST(_, _) if content_length > 0 => {
+    if let request::Request::POST(_, _) = req {
+        if content_length > 0 {
             req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default())?;
         }
-        _ => (),
     }
 
     Ok(req)
@@ -195,8 +194,8 @@ where
                         .nth(1)
                         .and_then(|value| value.trim().parse::<usize>().ok())
                 })
-                .unwrap_or(0);
-            panic!("Need to read body according to content length but we are not doing that yet")
+                .unwrap_or(0)
+            // panic!("Need to read body according to content length but we are not doing that yet")
         }
     };
 
@@ -260,11 +259,32 @@ mod test {
     }
 
     #[test]
-    fn test_parse_request() -> Result<()> {
+    fn test_parse_request_get() -> Result<()> {
         let lines = &["GET / HTTP/1.1"];
         let (req, content_length) = parse_request(lines.iter())?;
         assert_eq!(req, request::Request::GET("/".to_owned()));
         assert_eq!(content_length, 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_request_post() -> Result<()> {
+        let lines = &["POST / HTTP/1.1", "Content-Length: 0"];
+        let (req, content_length) = parse_request(lines.iter())?;
+        assert_eq!(
+            req,
+            request::Request::POST("/".to_owned(), String::default())
+        );
+        assert_eq!(content_length, 0);
+
+        let lines = &["POST / HTTP/1.1", "Content-Length: 10", "foobarfoob"];
+        let (req, content_length) = parse_request(lines.iter())?;
+        assert_eq!(
+            req,
+            request::Request::POST("/".to_owned(), String::from(""))
+        );
+        assert_eq!(content_length, 10);
 
         Ok(())
     }
@@ -277,4 +297,43 @@ mod test {
         assert_eq!(res.err().unwrap().to_string(), "No request line found");
         Ok(())
     }
+
+    #[test]
+    fn test_read_and_parse_request_get() -> Result<()> {
+        let req = vec![
+            "GET / HTTP/1.1\r\n",
+            "Content-Length: 13\r\n",
+            "\r\n",
+            "Hello, World!",
+        ]
+        .join("");
+        let mut stream = req.as_bytes();
+
+        // turn stream into BufReader
+        let res = read_and_parse_request(&mut stream)?;
+        assert_eq!(res, request::Request::GET("/".to_owned()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_read_and_parse_request_post() -> Result<()> {
+        let req = vec![
+            "POST / HTTP/1.1\r\n",
+            "Content-Length: 13\r\n",
+            "\r\n",
+            "Hello, World!",
+        ]
+        .join("");
+        let mut stream = req.as_bytes();
+
+        // turn stream into BufReader
+        let res = read_and_parse_request(&mut stream)?;
+        assert_eq!(
+            res,
+            request::Request::POST("/".to_owned(), "Hello, World!".to_owned())
+        );
+        Ok(())
+    }
+
+    // #[test]
 }
