@@ -100,6 +100,7 @@ impl Server {
     pub fn run(&self) -> Result<()> {
         for stream in self.tcp_listener.incoming() {
             let mut stream = stream?;
+            // stream.set_read_timeout(Some(Duration::from_secs(3)))?;
             let handlers = self.handlers.clone();
 
             // error boundary
@@ -121,11 +122,19 @@ where
 {
     let req = read_and_parse_request(stream)
         .map_err(|err| anyhow!("Error parsing request: {:?}", err))?;
-
     // build response
-    let response = match handlers.valid_handlers.get(&req) {
-        Some(handler) => handler.handle(req),
-        None => handlers.handle_error(req),
+    let response = match req {
+        request::Request::GET(_) => match handlers.valid_handlers.get(&req) {
+            Some(handler) => handler.handle(req),
+            None => handlers.handle_error(req),
+        },
+        request::Request::POST(ref path, _) => match handlers
+            .valid_handlers
+            .get(&request::Request::POST(path.clone(), String::default()))
+        {
+            Some(handler) => handler.handle(req),
+            None => handlers.handle_error(req),
+        },
     };
     let response = response?;
 
@@ -158,6 +167,14 @@ fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     // Parse the request body based on Content-Length
     let mut body_buffer = vec![0; content_length];
     buffer.read_exact(&mut body_buffer)?;
+
+    // TODO IMPLEMENT THIS LOGIC
+    // let mut buffer: Vec<u8> = vec![0; length];
+    // let read_len = buf_reader.read(&mut buffer).unwrap();
+    // if read_len != length {
+    //     eprintln!("User inputted invalid BUFLEN");
+    //     return;
+    // }
 
     // Add body to request if POST
     if let request::Request::POST(_, _) = req {
