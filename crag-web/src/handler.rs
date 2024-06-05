@@ -17,11 +17,11 @@ where
 
 pub type BoxedHandler = Box<dyn Handler + Send + Sync + 'static>;
 
+const DEFAULT_404: &[u8] = include_bytes!("../static/html/404.html");
+
 /// Default handler for 404 errors
 pub fn default_error_404_handler(_request: Request) -> anyhow::Result<response::Response> {
-    Ok(response::Response::NotFound(
-        include_bytes!("../static/html/404.html").into(),
-    ))
+    Ok(response::Response::NotFound(DEFAULT_404.into()))
 }
 
 #[cfg(test)]
