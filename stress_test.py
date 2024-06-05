@@ -5,7 +5,7 @@ def send_request(url):
     # Send a GET request to the URL
     response = requests.get(url)
     # Print the response status code
-    print("Response:", response.content)
+    print("Response:", response.status_code)
 
 def main():
     # Define the URL you want to send requests to
