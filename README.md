@@ -16,83 +16,44 @@ Crag-Web is a lightweight and flexible HTTP web server framework written in Rust
 - **Simple Routing**: Define routes for handling HTTP requests with ease.
 - **Multithreading with Built-in Threadpool**: Defines a built-in threadpool, with custom Worker thread amounts, to handle concurrent requests efficiently.
 - **Extensible**: Designed to be easily extendable with custom components.
-- **CSRF Token Validation**: Designed to safely handle POST requests by impelmenting CSRF validation.
-
-## Installation
-
-To use Crag-Web in your Rust project, add the following dependency to your `Cargo.toml`:
-
-```toml
-[dependencies]
-crag-web = "0.1.0"
-```
 
 ## Quick Start
 
 ```rust
-use std::net::ToSocketAddrs;
-use crag_web::{server, request, response};
+use crag_web::{request, response, server};
 
 // get "/hello"
-fn hello_handler() -> response::Response {
-    let body = "Hello, Crag-Web!";
-    let status_line = "HTTP/1.1 200 OK";
-    let len = body.len();
-
-    // format http response
-    let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{body}"
-    );
-    response::Response{ content: response.as_bytes().to_vec() }
+fn hello_handler(_request: request::Request) -> anyhow::Result<response::Response> {
+    Ok(response::Response::Ok(
+        "Hello, Crag-Web!".into(),
+        response::ContentType::HTML,
+    ))
 }
 
 // get <bad request>
-fn error_404_handler() -> response::Response {
-    let body = "404 not found";
-    let status_line = "HTTP/1.1 404 Not Found";
-    let len = body.len();
-
-    // format http response
-    let response = format!(
-        "{status_line}\r\nContent-Length: {len}\r\n\r\n{body}"
-    );
-    response::Response{ content: response.as_bytes().to_vec() }
+fn error_404_handler(_request: request::Request) -> anyhow::Result<response::Response> {
+    Ok(response::Response::NotFound(("404 Not Found").into()))
 }
 
-fn main() -> std::io::Result<()> {
-    // validate addr
-    let addr = "127.0.0.1:8010";
-    let socket_addr = match addr.to_socket_addrs() {
-        Ok(addr_iter) => addr_iter,
-        Err(_) => panic!("could not resolve socket address")
-    }
-        .next()
+fn main() -> anyhow::Result<()> {
+    let app = server::Server::build()
+        .register_error_handler(Box::new(error_404_handler))?
+        .register_handler(
+            request::Request::GET(String::from("/hello")),
+            Box::new(hello_handler),
+        )?
+        .finalize(("127.0.0.1", 8010), 1)
         .unwrap();
 
-    // Create server
-    let pool_size = 4;
-    let handlers = std::collections::HashMap::new();
-    let app = server::Server::build(socket_addr, pool_size, handlers)
-        .expect("Unable to create Server")
-        .register_error_handler(error_404_handler)
-        .register_handler(request::Request::GET(String::from("/hello")), hello_handler);
-
     // Run server
-    app.run();
+    app.run()?;
 
     Ok(())
 }
+
 ```
 
 This example creates a simple web server using Crag-Web that responds with "Hello, Crag-Web!" when accessing the `/hello` route.
-
-## Documentation
-
-For more details and advanced usage, check out the [Documentation](link/to/documentation).
-
-## Contributing
-
-We welcome contributions! Feel free to open an issue or submit a pull request.
 
 ## License
 
