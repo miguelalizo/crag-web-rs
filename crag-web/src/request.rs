@@ -32,7 +32,7 @@ impl Request {
             .next()
             .ok_or_else(|| anyhow::anyhow!("No method found"))?;
 
-        let uri = parts
+        let route = parts
             .next()
             .ok_or_else(|| anyhow::anyhow!("No URI found"))?;
 
@@ -54,11 +54,7 @@ impl Request {
             _ => bail!("Unrecognized method: {method}"),
         };
 
-        let route = Route {
-            route: uri.to_string(),
-        };
-
-        Ok(Request::new(method, route))
+        Ok(Request::new(method, route.into()))
     }
 
     pub fn add_body(&mut self, body: String) -> Result<(), anyhow::Error> {
@@ -83,12 +79,7 @@ mod tests {
     fn test_request_parser_happy_path() {
         let req = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
         assert_eq!(req.method, Method::GET);
-        assert_eq!(
-            req.route,
-            Route {
-                route: String::from("/")
-            }
-        );
+        assert_eq!(req.route, "/".into(),);
     }
 
     #[test]
@@ -138,30 +129,15 @@ mod tests {
     fn test_good_paths() {
         let req = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
         assert_eq!(req.method, Method::GET);
-        assert_eq!(
-            req.route,
-            Route {
-                route: String::from("/")
-            }
-        );
+        assert_eq!(req.route, "/".into(),);
 
         let req = Request::parse(&String::from("GET /foo HTTP/1.1")).unwrap();
         assert_eq!(req.method, Method::GET);
-        assert_eq!(
-            req.route,
-            Route {
-                route: String::from("/foo")
-            }
-        );
+        assert_eq!(req.route, "/foo".into());
 
         let req = Request::parse(&String::from("GET /foo/bar HTTP/1.1")).unwrap();
         assert_eq!(req.method, Method::GET);
-        assert_eq!(
-            req.route,
-            Route {
-                route: String::from("/foo/bar")
-            }
-        );
+        assert_eq!(req.route, "/foo/bar".into());
     }
 
     #[test]
@@ -184,12 +160,7 @@ mod tests {
 
     #[test]
     fn test_add_body_to_get_request() {
-        let mut req = Request::new(
-            Method::GET,
-            Route {
-                route: String::from("/"),
-            },
-        );
+        let mut req = Request::new(Method::GET, "/".into());
         let res = req.add_body(String::from("Hello, World!"));
         assert!(res.is_ok());
         assert!(req.body.is_none());
@@ -197,24 +168,14 @@ mod tests {
 
     #[test]
     fn test_add_body_to_post_request() {
-        let mut req = Request::new(
-            Method::POST,
-            Route {
-                route: String::from("/"),
-            },
-        );
+        let mut req = Request::new(Method::POST, "/".into());
         req.add_body(String::from("Hello, World!")).unwrap();
         assert_eq!(req.body, Some(String::from("Hello, World!")));
     }
 
     #[test]
     fn test_add_body_twice() {
-        let mut req = Request::new(
-            Method::POST,
-            Route {
-                route: String::from("/"),
-            },
-        );
+        let mut req = Request::new(Method::POST, "/".into());
         req.add_body(String::from("Hello, World!")).unwrap();
         let res = req.add_body(String::from("Hello, World!"));
         assert!(res

@@ -218,7 +218,6 @@ mod test {
     use crate::handler;
     use crate::request;
     use crate::response;
-    use crate::routes;
     use anyhow::Result;
 
     // get "/hello"
@@ -235,7 +234,7 @@ mod test {
         let _builder = Server::build()
             .register_error_handler(Box::new(handler::default_error_404_handler))?
             .register_handler(
-                routes::Route::new("/"),
+                "/".into(),
                 Box::new(|_req| {
                     Ok(response::Response::Ok(
                         "Hello, Crag-Web!".as_bytes().to_vec(),
@@ -243,7 +242,7 @@ mod test {
                     ))
                 }),
             )?
-            .register_handler(routes::Route::new("/hello"), Box::new(hello_handler))?
+            .register_handler("/hello".into(), Box::new(hello_handler))?
             .finalize(("127.0.0.1", 8010), 4)
             .unwrap();
         Ok(())
@@ -253,7 +252,7 @@ mod test {
     fn test_no_err_handler_fails() -> Result<()> {
         let server = Server::build()
             .register_handler(
-                routes::Route::new("/"),
+                "/".into(),
                 Box::new(|_req| {
                     Ok(response::Response::Ok(
                         "Hello, Crag-Web!".as_bytes().to_vec(),
@@ -270,10 +269,7 @@ mod test {
     fn test_parse_request_get() -> Result<()> {
         let lines = &["GET / HTTP/1.1"];
         let (req, content_length) = parse_request(lines.iter())?;
-        assert_eq!(
-            req,
-            request::Request::new(methods::Method::GET, routes::Route::new("/"))
-        );
+        assert_eq!(req, request::Request::new(methods::Method::GET, "/".into()));
         assert_eq!(content_length, 0);
 
         Ok(())
@@ -283,7 +279,7 @@ mod test {
     fn test_parse_request_post() -> Result<()> {
         let lines = &["POST / HTTP/1.1", "Content-Length: 0"];
         let (req, content_length) = parse_request(lines.iter())?;
-        let expected_req = request::Request::new(methods::Method::POST, routes::Route::new("/"));
+        let expected_req = request::Request::new(methods::Method::POST, "/".into());
         assert_eq!(req, expected_req);
         assert_eq!(content_length, 0);
 
@@ -291,7 +287,7 @@ mod test {
         let (req, content_length) = parse_request(lines.iter())?;
         let expected_req = request::Request {
             method: methods::Method::POST,
-            route: routes::Route::new("/"),
+            route: "/".into(),
             body: None,
         };
 
@@ -324,7 +320,7 @@ mod test {
         // turn stream into BufReader
         let res = read_and_parse_request(&mut stream)?;
         let expected = request::Request {
-            route: routes::Route::new("/"),
+            route: "/".into(),
             method: methods::Method::GET,
             body: None,
         };
@@ -346,7 +342,7 @@ mod test {
         // turn stream into BufReader
         let res = read_and_parse_request(&mut stream)?;
         let expected = request::Request {
-            route: routes::Route::new("/"),
+            route: "/".into(),
             method: methods::Method::POST,
             body: Some("Hello, World!".to_owned()),
         };

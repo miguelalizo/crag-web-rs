@@ -1,17 +1,17 @@
 use anyhow::Result;
-use crag_web::{handler, request, response, routes, server::Server};
+use crag_web::{handler, request, response, server::Server};
 
 #[tokio::test]
 async fn test_index() -> Result<()> {
     let server = Server::build()
         .register_error_handler(Box::new(handler::default_error_404_handler))?
-        .register_handler(routes::Route::new("/foo"), |_req: request::Request| {
+        .register_handler("/foo".into(), |_req: request::Request| {
             Ok(response::Response::Ok(
                 "Bar!".into(),
                 response::ContentType::HTML,
             ))
         })?
-        .register_handler(routes::Route::new("/hello"), hello_handler)?
+        .register_handler("/hello".into(), hello_handler)?
         .finalize(("127.0.0.1", 8010), 4)?;
 
     let _server_join = std::thread::spawn(move || {

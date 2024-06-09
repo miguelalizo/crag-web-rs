@@ -11,6 +11,12 @@ impl Route {
     }
 }
 
+impl From<&str> for Route {
+    fn from(route: &str) -> Route {
+        Route::new(route)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -19,5 +25,11 @@ mod tests {
     fn test_route_new() {
         let route = Route::new("/foo");
         assert_eq!(route.route, "/foo".to_owned());
+    }
+
+    #[test]
+    fn test_from_str_for_route() {
+        let route: Route = "/foo".into();
+        assert_eq!(route, Route::new("/foo"));
     }
 }

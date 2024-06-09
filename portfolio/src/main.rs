@@ -1,5 +1,4 @@
 use crag_web::methods;
-use crag_web::routes;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::SmtpTransport;
 
@@ -51,6 +50,7 @@ fn send_email() {
 }
 
 // GET /contact
+// POST /contact
 fn contact(req: request::Request) -> anyhow::Result<response::Response> {
     let filename = match req.method {
         methods::Method::POST => {
@@ -137,21 +137,18 @@ fn error_404(_req: request::Request) -> anyhow::Result<response::Response> {
 fn main() -> anyhow::Result<()> {
     let srvr = server::Server::build()
         .register_error_handler(error_404)?
-        .register_handler(routes::Route::new("/images/404.jpeg"), image_404)?
-        .register_handler(routes::Route::new("/"), index)?
-        .register_handler(routes::Route::new("/contact"), contact)?
-        .register_handler(routes::Route::new("/not_found"), not_found)?
-        .register_handler(routes::Route::new("/scripts/script.js"), js_script)?
-        .register_handler(routes::Route::new("/css/default.css"), css_default)?
-        .register_handler(routes::Route::new("/css/blue.css"), css_blue)?
-        .register_handler(routes::Route::new("/css/green.css"), css_green)?
-        .register_handler(routes::Route::new("/css/purple.css"), css_purple)?
-        .register_handler(routes::Route::new("/images/me.jpeg"), image_me)?
-        .register_handler(routes::Route::new("/images/linkedin.jpeg"), image_linkedin)?
-        .register_handler(
-            routes::Route::new("/images/mail_sent.jpeg"),
-            image_mail_sent,
-        )?
+        .register_handler("/images/404.jpeg".into(), image_404)?
+        .register_handler("/".into(), index)?
+        .register_handler("/contact".into(), contact)?
+        .register_handler("/not_found".into(), not_found)?
+        .register_handler("/scripts/script.js".into(), js_script)?
+        .register_handler("/css/default.css".into(), css_default)?
+        .register_handler("/css/blue.css".into(), css_blue)?
+        .register_handler("/css/green.css".into(), css_green)?
+        .register_handler("/css/purple.css".into(), css_purple)?
+        .register_handler("/images/me.jpeg".into(), image_me)?
+        .register_handler("/images/linkedin.jpeg".into(), image_linkedin)?
+        .register_handler("/images/mail_sent.jpeg".into(), image_mail_sent)?
         .finalize(("127.0.0.1", 8010), 4)
         .unwrap();
 
