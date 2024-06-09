@@ -8,6 +8,7 @@ pub enum ContentType {
     CSS,
     JS,
     IMAGE,
+    PLAIN,
 }
 
 impl From<ContentType> for &'static str {
@@ -17,6 +18,7 @@ impl From<ContentType> for &'static str {
             ContentType::CSS => "text/css",
             ContentType::JS => "application/javascript",
             ContentType::IMAGE => "image/jpeg",
+            ContentType::PLAIN => "text/plain",
         }
     }
 }
@@ -133,6 +135,22 @@ mod test {
 
         let expected = format!(
             "HTTP/1.0 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: {len}\r\n\r\n",
+            len = body.len()
+        )
+        .into_bytes();
+        let mut expected = expected;
+        expected.extend(&body);
+
+        assert_eq!(Vec::<u8>::from(response), expected);
+    }
+
+    #[test]
+    fn test_bytes_from_plain_response() {
+        let body = vec![1, 2, 3];
+        let response = Response::Ok(body.clone(), ContentType::PLAIN);
+
+        let expected = format!(
+            "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len}\r\n\r\n",
             len = body.len()
         )
         .into_bytes();
