@@ -4,7 +4,7 @@ use crag_web::{handler, request, response, server::Server};
 #[tokio::test]
 async fn test_index() -> Result<()> {
     let server = Server::build()
-        .register_error_handler(Box::new(handler::default_error_404_handler))?
+        .register_error_handler(handler::default_error_404_handler)?
         .register_handler("/foo".into(), |_req: request::Request| {
             Ok(response::Response::Ok(
                 "Bar!".into(),

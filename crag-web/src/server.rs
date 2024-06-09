@@ -232,17 +232,14 @@ mod test {
     fn test_builder_pattern() -> Result<()> {
         // Create server
         let _builder = Server::build()
-            .register_error_handler(Box::new(handler::default_error_404_handler))?
-            .register_handler(
-                "/".into(),
-                Box::new(|_req| {
-                    Ok(response::Response::Ok(
-                        "Hello, Crag-Web!".as_bytes().to_vec(),
-                        response::ContentType::HTML,
-                    ))
-                }),
-            )?
-            .register_handler("/hello".into(), Box::new(hello_handler))?
+            .register_error_handler(handler::default_error_404_handler)?
+            .register_handler("/".into(), |_req| {
+                Ok(response::Response::Ok(
+                    "Hello, Crag-Web!".as_bytes().to_vec(),
+                    response::ContentType::HTML,
+                ))
+            })?
+            .register_handler("/hello".into(), hello_handler)?
             .finalize(("127.0.0.1", 8010), 4)
             .unwrap();
         Ok(())
@@ -251,15 +248,12 @@ mod test {
     #[test]
     fn test_no_err_handler_fails() -> Result<()> {
         let server = Server::build()
-            .register_handler(
-                "/".into(),
-                Box::new(|_req| {
-                    Ok(response::Response::Ok(
-                        "Hello, Crag-Web!".as_bytes().to_vec(),
-                        response::ContentType::HTML,
-                    ))
-                }),
-            )?
+            .register_handler("/".into(), |_req| {
+                Ok(response::Response::Ok(
+                    "Hello, Crag-Web!".as_bytes().to_vec(),
+                    response::ContentType::HTML,
+                ))
+            })?
             .finalize(("127.0.0.1", 8011), 1);
         assert!(server.is_err());
         Ok(())
