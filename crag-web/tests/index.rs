@@ -5,19 +5,13 @@ use crag_web::{handler, request, response, server::Server};
 async fn test_index() -> Result<()> {
     let server = Server::build()
         .register_error_handler(Box::new(handler::default_error_404_handler))?
-        .register_handler(
-            request::Request::GET("/foo".to_owned()),
-            Box::new(|_req| {
-                Ok(response::Response::Ok(
-                    "Bar!".into(),
-                    response::ContentType::HTML,
-                ))
-            }),
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/hello")),
-            Box::new(hello_handler),
-        )?
+        .register_handler("/foo".into(), |_req: request::Request| {
+            Ok(response::Response::Ok(
+                "Bar!".into(),
+                response::ContentType::HTML,
+            ))
+        })?
+        .register_handler("/hello".into(), hello_handler)?
         .finalize(("127.0.0.1", 8010), 4)?;
 
     let _server_join = std::thread::spawn(move || {

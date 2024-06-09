@@ -1,14 +1,26 @@
-// TODO: Add enumerated error values to not test based on strings
+use crate::methods::Method;
+use crate::routes::Route;
 
 use anyhow::{bail, Result};
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
-pub enum Request {
-    GET(String),
-    POST(String, String),
+// TODO: Add enumerated error values to not test based on strings
+
+#[derive(Eq, PartialEq, Debug)]
+pub struct Request {
+    pub method: Method,
+    pub route: Route,
+    pub body: Option<String>,
 }
 
 impl Request {
+    pub fn new(method: Method, route: Route) -> Self {
+        Request {
+            method,
+            route,
+            body: None,
+        }
+    }
+
     // should this be from implementation instead?
     pub fn parse(request_line: impl AsRef<str>) -> Result<Request> {
         let request_line = request_line.as_ref();
@@ -20,7 +32,7 @@ impl Request {
             .next()
             .ok_or_else(|| anyhow::anyhow!("No method found"))?;
 
-        let uri = parts
+        let route = parts
             .next()
             .ok_or_else(|| anyhow::anyhow!("No URI found"))?;
 
@@ -36,19 +48,19 @@ impl Request {
             bail!("Server can only work with HTTP/1.1");
         }
 
-        let req = match method {
-            "GET" => Request::GET(String::from(uri)),
-            "POST" => Request::POST(String::from(uri), String::default()),
+        let method = match method {
+            "GET" => Method::GET,
+            "POST" => Method::POST,
             _ => bail!("Unrecognized method: {method}"),
         };
 
-        Ok(req)
+        Ok(Request::new(method, route.into()))
     }
 
     pub fn add_body(&mut self, body: String) -> Result<(), anyhow::Error> {
-        if let &mut Request::POST(_, ref mut b) = self {
-            if b.is_empty() {
-                *b = body;
+        if let &mut Method::POST = &mut self.method {
+            if self.body.is_none() {
+                self.body = Some(body);
             } else {
                 bail!("Body already exists in request")
             }
@@ -66,10 +78,8 @@ mod tests {
     #[test]
     fn test_request_parser_happy_path() {
         let req = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
-        assert_eq!(req, Request::GET(String::from("/")));
-
-        let req = Request::parse(&String::from("POST / HTTP/1.1")).unwrap();
-        assert_eq!(req, Request::POST(String::from("/"), String::default()));
+        assert_eq!(req.method, Method::GET);
+        assert_eq!(req.route, "/".into(),);
     }
 
     #[test]
@@ -118,13 +128,16 @@ mod tests {
     #[test]
     fn test_good_paths() {
         let req = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
-        assert_eq!(req, Request::GET(String::from("/")));
+        assert_eq!(req.method, Method::GET);
+        assert_eq!(req.route, "/".into(),);
 
         let req = Request::parse(&String::from("GET /foo HTTP/1.1")).unwrap();
-        assert_eq!(req, Request::GET(String::from("/foo")));
+        assert_eq!(req.method, Method::GET);
+        assert_eq!(req.route, "/foo".into());
 
         let req = Request::parse(&String::from("GET /foo/bar HTTP/1.1")).unwrap();
-        assert_eq!(req, Request::GET(String::from("/foo/bar")));
+        assert_eq!(req.method, Method::GET);
+        assert_eq!(req.route, "/foo/bar".into());
     }
 
     #[test]
@@ -146,22 +159,25 @@ mod tests {
     }
 
     #[test]
-    fn test_add_body() {
-        let mut req = Request::POST(String::from("/"), String::default());
-        req.add_body(String::from("Hello, World!")).unwrap();
+    fn test_add_body_to_get_request() {
+        let mut req = Request::new(Method::GET, "/".into());
+        let res = req.add_body(String::from("Hello, World!"));
+        assert!(res.is_ok());
+        assert!(req.body.is_none());
+    }
 
-        assert_eq!(
-            req,
-            Request::POST(String::from("/"), String::from("Hello, World!"))
-        );
+    #[test]
+    fn test_add_body_to_post_request() {
+        let mut req = Request::new(Method::POST, "/".into());
+        req.add_body(String::from("Hello, World!")).unwrap();
+        assert_eq!(req.body, Some(String::from("Hello, World!")));
     }
 
     #[test]
     fn test_add_body_twice() {
-        let mut req = Request::POST(String::from("/"), String::default());
+        let mut req = Request::new(Method::POST, "/".into());
         req.add_body(String::from("Hello, World!")).unwrap();
         let res = req.add_body(String::from("Hello, World!"));
-        assert!(res.is_err(), "Returned request is: {res:?}");
         assert!(res
             .err()
             .unwrap()

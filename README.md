@@ -20,29 +20,26 @@ Crag-Web is a lightweight and flexible HTTP web server framework written in Rust
 ## Quick Start
 
 ```rust
-use crag_web::{request, response, server};
+use crag_web::{handler::default_error_404_handler, request, response, server};
 
-// get "/hello"
 fn hello_handler(_request: request::Request) -> anyhow::Result<response::Response> {
     Ok(response::Response::Ok(
         "Hello, Crag-Web!".into(),
-        response::ContentType::HTML,
+        response::ContentType::PLAIN,
     ))
-}
-
-// get <bad request>
-fn error_404_handler(_request: request::Request) -> anyhow::Result<response::Response> {
-    Ok(response::Response::NotFound(("404 Not Found").into()))
 }
 
 fn main() -> anyhow::Result<()> {
     let app = server::Server::build()
-        .register_error_handler(Box::new(error_404_handler))?
-        .register_handler(
-            request::Request::GET(String::from("/hello")),
-            Box::new(hello_handler),
-        )?
-        .finalize(("127.0.0.1", 8010), 1)
+        .register_error_handler(default_error_404_handler)?
+        .register_handler("/hello".into(), hello_handler)?
+        .register_handler("/foo".into(), |_req| {
+            Ok(response::Response::Ok(
+                "bar".into(),
+                response::ContentType::PLAIN,
+            ))
+        })?
+        .finalize(("127.0.0.1", 8010), 4)
         .unwrap();
 
     // Run server
@@ -50,7 +47,6 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
 ```
 
 This example creates a simple web server using Crag-Web that responds with "Hello, Crag-Web!" when accessing the `/hello` route.
