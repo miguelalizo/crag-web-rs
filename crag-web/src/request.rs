@@ -5,11 +5,11 @@ use anyhow::{bail, Result};
 
 // TODO: Add enumerated error values to not test based on strings
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub struct Request {
-    method: Method,
-    route: Route, // TODO: What are we going to hash on?
-    body: Option<String>,
+    pub method: Method,
+    pub route: Route,
+    pub body: Option<String>,
 }
 
 impl Request {
@@ -22,7 +22,7 @@ impl Request {
     }
 
     // should this be from implementation instead?
-    pub fn parse(request_line: impl AsRef<str>) -> Result<(Method, Route)> {
+    pub fn parse(request_line: impl AsRef<str>) -> Result<Request> {
         let request_line = request_line.as_ref();
         println!("{request_line}");
 
@@ -58,7 +58,7 @@ impl Request {
             route: uri.to_string(),
         };
 
-        Ok((method, route))
+        Ok(Request::new(method, route))
     }
 
     pub fn add_body(&mut self, body: String) -> Result<(), anyhow::Error> {
@@ -81,10 +81,10 @@ mod tests {
 
     #[test]
     fn test_request_parser_happy_path() {
-        let (method, route) = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
-        assert_eq!(method, Method::GET);
+        let req = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
+        assert_eq!(req.method, Method::GET);
         assert_eq!(
-            route,
+            req.route,
             Route {
                 route: String::from("/")
             }
@@ -136,28 +136,28 @@ mod tests {
 
     #[test]
     fn test_good_paths() {
-        let (method, route) = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
-        assert_eq!(method, Method::GET);
+        let req = Request::parse(&String::from("GET / HTTP/1.1")).unwrap();
+        assert_eq!(req.method, Method::GET);
         assert_eq!(
-            route,
+            req.route,
             Route {
                 route: String::from("/")
             }
         );
 
-        let (method, route) = Request::parse(&String::from("GET /foo HTTP/1.1")).unwrap();
-        assert_eq!(method, Method::GET);
+        let req = Request::parse(&String::from("GET /foo HTTP/1.1")).unwrap();
+        assert_eq!(req.method, Method::GET);
         assert_eq!(
-            route,
+            req.route,
             Route {
                 route: String::from("/foo")
             }
         );
 
-        let (method, route) = Request::parse(&String::from("GET /foo/bar HTTP/1.1")).unwrap();
-        assert_eq!(method, Method::GET);
+        let req = Request::parse(&String::from("GET /foo/bar HTTP/1.1")).unwrap();
+        assert_eq!(req.method, Method::GET);
         assert_eq!(
-            route,
+            req.route,
             Route {
                 route: String::from("/foo/bar")
             }
