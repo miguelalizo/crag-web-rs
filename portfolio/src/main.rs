@@ -1,3 +1,5 @@
+use crag_web::methods;
+use crag_web::routes;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::SmtpTransport;
 
@@ -50,8 +52,8 @@ fn send_email() {
 
 // GET /contact
 fn contact(req: request::Request) -> anyhow::Result<response::Response> {
-    let filename = match req {
-        request::Request::POST(_, _body) => {
+    let filename = match req.method {
+        methods::Method::POST => {
             // println!("{}", body);
             send_email();
             format!("{STATIC_FILES}html/thanks.html")
@@ -135,48 +137,20 @@ fn error_404(_req: request::Request) -> anyhow::Result<response::Response> {
 fn main() -> anyhow::Result<()> {
     let srvr = server::Server::build()
         .register_error_handler(error_404)?
+        .register_handler(routes::Route::new("/images/404.jpeg"), image_404)?
+        .register_handler(routes::Route::new("/"), index)?
+        .register_handler(routes::Route::new("/contact"), contact)?
+        .register_handler(routes::Route::new("/not_found"), not_found)?
+        .register_handler(routes::Route::new("/scripts/script.js"), js_script)?
+        .register_handler(routes::Route::new("/css/default.css"), css_default)?
+        .register_handler(routes::Route::new("/css/blue.css"), css_blue)?
+        .register_handler(routes::Route::new("/css/green.css"), css_green)?
+        .register_handler(routes::Route::new("/css/purple.css"), css_purple)?
+        .register_handler(routes::Route::new("/images/me.jpeg"), image_me)?
+        .register_handler(routes::Route::new("/images/linkedin.jpeg"), image_linkedin)?
         .register_handler(
-            request::Request::GET(String::from("/images/404.jpeg")),
-            image_404,
-        )?
-        .register_handler(request::Request::GET(String::from("/")), index)?
-        .register_handler(request::Request::GET(String::from("/contact")), contact)?
-        .register_handler(request::Request::GET(String::from("/not_found")), not_found)?
-        .register_handler(
-            request::Request::GET(String::from("/scripts/script.js")),
-            js_script,
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/css/default.css")),
-            css_default,
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/css/blue.css")),
-            css_blue,
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/css/green.css")),
-            css_green,
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/css/purple.css")),
-            css_purple,
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/images/me.jpeg")),
-            image_me,
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/images/linkedin.jpeg")),
-            image_linkedin,
-        )?
-        .register_handler(
-            request::Request::GET(String::from("/images/mail_sent.jpeg")),
+            routes::Route::new("/images/mail_sent.jpeg"),
             image_mail_sent,
-        )?
-        .register_handler(
-            request::Request::POST(String::from("/contact"), String::default()),
-            contact,
         )?
         .finalize(("127.0.0.1", 8010), 4)
         .unwrap();
