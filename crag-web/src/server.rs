@@ -6,12 +6,13 @@ use std::net::ToSocketAddrs;
 use std::sync::Arc;
 use tracing::error;
 
-use crate::handler;
 use crate::request;
 use crate::response;
+use crate::routes;
 use crate::threadpool;
+use crate::{handler, methods};
 
-type HandlerMap = HashMap<request::Request, handler::BoxedHandler>;
+type HandlerMap = HashMap<routes::Route, handler::BoxedHandler>;
 
 struct Handlers {
     valid_handlers: HandlerMap,
@@ -68,7 +69,7 @@ impl ServerBuilder {
 
     pub fn register_handler(
         mut self,
-        r: request::Request,
+        r: routes::Route,
         handler: impl handler::Handler + Send + Sync + 'static,
     ) -> Result<Self> {
         if self.handlers.contains_key(&r) {
@@ -122,19 +123,11 @@ where
 {
     let req = read_and_parse_request(stream)
         .map_err(|err| anyhow!("Error parsing request: {:?}", err))?;
+
     // build response
-    let response = match req {
-        request::Request::GET(_) => match handlers.valid_handlers.get(&req) {
-            Some(handler) => handler.handle(req),
-            None => handlers.handle_error(req),
-        },
-        request::Request::POST(ref path, _) => match handlers
-            .valid_handlers
-            .get(&request::Request::POST(path.clone(), String::default()))
-        {
-            Some(handler) => handler.handle(req),
-            None => handlers.handle_error(req),
-        },
+    let response = match handlers.valid_handlers.get(&req.route) {
+        Some(handler) => handler.handle(req),
+        None => handlers.handle_error(req),
     };
     let response = response?;
 
@@ -177,7 +170,7 @@ fn read_and_parse_request(stream: &mut impl Read) -> Result<request::Request> {
     // }
 
     // Add body to request if POST
-    if let request::Request::POST(_, _) = req {
+    if let methods::Method::POST = req.method {
         if content_length > 0 {
             req.add_body(String::from_utf8(body_buffer.clone()).unwrap_or_default())?;
         }
@@ -199,9 +192,9 @@ where
     let req = request::Request::parse(first_line.as_ref())?;
 
     // parse content length if POST else 0
-    let content_length = match req {
-        request::Request::GET(_) => 0,
-        request::Request::POST(_, _) => {
+    let content_length = match req.method {
+        methods::Method::GET => 0,
+        methods::Method::POST => {
             lines
                 .find(|line| line.as_ref().starts_with("Content-Length:"))
                 .and_then(|line| {
@@ -225,6 +218,7 @@ mod test {
     use crate::handler;
     use crate::request;
     use crate::response;
+    use crate::routes;
     use anyhow::Result;
 
     // get "/hello"
@@ -241,7 +235,7 @@ mod test {
         let _builder = Server::build()
             .register_error_handler(Box::new(handler::default_error_404_handler))?
             .register_handler(
-                request::Request::GET("/".to_owned()),
+                routes::Route::new("/"),
                 Box::new(|_req| {
                     Ok(response::Response::Ok(
                         "Hello, Crag-Web!".as_bytes().to_vec(),
@@ -249,10 +243,7 @@ mod test {
                     ))
                 }),
             )?
-            .register_handler(
-                request::Request::GET("/hello".to_owned()),
-                Box::new(hello_handler),
-            )?
+            .register_handler(routes::Route::new("/hello"), Box::new(hello_handler))?
             .finalize(("127.0.0.1", 8010), 4)
             .unwrap();
         Ok(())
@@ -262,7 +253,7 @@ mod test {
     fn test_no_err_handler_fails() -> Result<()> {
         let server = Server::build()
             .register_handler(
-                request::Request::GET("/".to_owned()),
+                routes::Route::new("/"),
                 Box::new(|_req| {
                     Ok(response::Response::Ok(
                         "Hello, Crag-Web!".as_bytes().to_vec(),
@@ -279,7 +270,10 @@ mod test {
     fn test_parse_request_get() -> Result<()> {
         let lines = &["GET / HTTP/1.1"];
         let (req, content_length) = parse_request(lines.iter())?;
-        assert_eq!(req, request::Request::GET("/".to_owned()));
+        assert_eq!(
+            req,
+            request::Request::new(methods::Method::GET, routes::Route::new("/"))
+        );
         assert_eq!(content_length, 0);
 
         Ok(())
@@ -289,18 +283,19 @@ mod test {
     fn test_parse_request_post() -> Result<()> {
         let lines = &["POST / HTTP/1.1", "Content-Length: 0"];
         let (req, content_length) = parse_request(lines.iter())?;
-        assert_eq!(
-            req,
-            request::Request::POST("/".to_owned(), String::default())
-        );
+        let expected_req = request::Request::new(methods::Method::POST, routes::Route::new("/"));
+        assert_eq!(req, expected_req);
         assert_eq!(content_length, 0);
 
         let lines = &["POST / HTTP/1.1", "Content-Length: 10", "foobarfoob"];
         let (req, content_length) = parse_request(lines.iter())?;
-        assert_eq!(
-            req,
-            request::Request::POST("/".to_owned(), String::from(""))
-        );
+        let expected_req = request::Request {
+            method: methods::Method::POST,
+            route: routes::Route::new("/"),
+            body: None,
+        };
+
+        assert_eq!(req, expected_req);
         assert_eq!(content_length, 10);
 
         Ok(())
@@ -328,7 +323,12 @@ mod test {
 
         // turn stream into BufReader
         let res = read_and_parse_request(&mut stream)?;
-        assert_eq!(res, request::Request::GET("/".to_owned()));
+        let expected = request::Request {
+            route: routes::Route::new("/"),
+            method: methods::Method::GET,
+            body: None,
+        };
+        assert_eq!(res, expected);
         Ok(())
     }
 
@@ -345,10 +345,13 @@ mod test {
 
         // turn stream into BufReader
         let res = read_and_parse_request(&mut stream)?;
-        assert_eq!(
-            res,
-            request::Request::POST("/".to_owned(), "Hello, World!".to_owned())
-        );
+        let expected = request::Request {
+            route: routes::Route::new("/"),
+            method: methods::Method::POST,
+            body: Some("Hello, World!".to_owned()),
+        };
+
+        assert_eq!(res, expected);
         Ok(())
     }
 

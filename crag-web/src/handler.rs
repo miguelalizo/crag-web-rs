@@ -30,7 +30,12 @@ mod tests {
 
     #[test]
     fn test_default_error_404_handler() {
-        let response = default_error_404_handler(Request::GET(String::from("/")));
+        let response = default_error_404_handler(Request::new(
+            crate::methods::Method::GET,
+            crate::routes::Route {
+                route: "/".to_owned(),
+            },
+        ));
         let expected_body: Vec<u8> = include_bytes!("../static/html/404.html").into();
 
         assert!(matches!(response, Ok(response::Response::NotFound(_))));
